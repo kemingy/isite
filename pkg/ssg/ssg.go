@@ -5,5 +5,5 @@ import (
 )
 
 type StaticSiteGenerator interface {
-	Generate(issues []pkg.Issue) error
+	Generate(issues []pkg.Issue, outputDir string) error
 }

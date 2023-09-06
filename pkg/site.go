@@ -106,3 +106,7 @@ func (w *Website) Retrieve() error {
 	}
 	return nil
 }
+
+func (w *Website) Generate() error {
+	return nil
+}
