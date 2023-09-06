@@ -20,6 +20,14 @@ type Reactions struct {
 	Eyes       int    `json:"eyes"`
 }
 
+type Label struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	Default     bool   `json:"default"`
+}
+
 type Issue struct {
 	Id        int       `json:"id"`
 	Number    int       `json:"number"`
@@ -29,7 +37,7 @@ type Issue struct {
 	User      User      `json:"user"`
 	State     string    `json:"state"`
 	Locked    bool      `json:"locked"`
-	Labels    []string  `json:"labels"`
+	Labels    []Label   `json:"labels"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 	ClosedAt  string    `json:"closed_at"`
