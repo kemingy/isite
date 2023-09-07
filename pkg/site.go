@@ -5,6 +5,10 @@ import (
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/cockroachdb/errors"
+
+	"github.com/kemingy/isite/pkg/ssg"
+	"github.com/kemingy/isite/pkg/types"
 )
 
 type issueFilterOption struct {
@@ -31,7 +35,7 @@ type Website struct {
 	FilterOption issueFilterOption
 	PerPage      int
 	// data
-	Issues []Issue
+	Issues []types.Issue
 }
 
 type IssueFilterOption interface {
@@ -107,6 +111,14 @@ func (w *Website) Retrieve() error {
 	return nil
 }
 
-func (w *Website) Generate() error {
+func (w *Website) Generate(engine, title, theme, themeRepo, baseUrl, output string, feed bool) error {
+	if title == "" {
+		title = w.Repo
+	}
+	generator := ssg.NewGenerator(engine, title, theme, themeRepo, baseUrl, feed)
+	err := generator.Generate(w.Issues, "output")
+	if err != nil {
+		return errors.Wrap(err, "failed to generate static site")
+	}
 	return nil
 }

@@ -7,3 +7,7 @@ build:
 
 format:
 	go fmt ./...
+
+clean:
+	@-rm -rf $(OUTPUT_DIR)
+	@-rm -rf output

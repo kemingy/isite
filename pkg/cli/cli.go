@@ -14,9 +14,6 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "isite",
 	Short: "isite is a tool to generate static site from github issue",
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
 }
 
 func Execute() {

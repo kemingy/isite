@@ -1,4 +1,4 @@
-package pkg
+package types
 
 type User struct {
 	Login     string `json:"login"`
