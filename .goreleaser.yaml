@@ -60,7 +60,7 @@ changelog:
 
 dockers:
   - image_templates:
-      - "kemingy:isite:{{ .Version }}"
+      - "kemingy:isite:v{{ .Version }}"
     use: buildx
     dockerfile: Dockerfile
     ids:
@@ -68,7 +68,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
   - image_templates:
-      - "kemingy:isite:{{ .Version }}"
+      - "kemingy:isite:v{{ .Version }}"
     use: buildx
     dockerfile: Dockerfile
     ids:
@@ -78,7 +78,7 @@ dockers:
     goarch: arm64
 
 docker_manifests:
-  - name_template: "kemingy:isite:{{ .Version }}"
+  - name_template: "kemingy:isite:v{{ .Version }}"
     image_templates:
-      - "goreleaser/goreleaser:{{ .Version }}-amd64"
-      - "goreleaser/goreleaser:{{ .Version }}-arm64"
+      - "goreleaser/goreleaser:v{{ .Version }}-amd64"
+      - "goreleaser/goreleaser:v{{ .Version }}-arm64"
