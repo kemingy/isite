@@ -1,0 +1,84 @@
+project_name: isite
+builds:
+  - env:
+      - CGO_ENABLED=0
+    id: isite
+    main: cmd/isite/main.go
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/tensorchord/envd/pkg/version.gitTag={{ .Tag }}
+      - -X github.com/tensorchord/envd/pkg/version.buildDate={{ .Date }}
+      - -X github.com/tensorchord/envd/pkg/version.gitCommit={{ .Commit }}
+
+archives:
+  - name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+    format_overrides:
+      - goos: windows
+        format: zip
+    builds_info:
+      group: root
+      owner: root
+    files:
+      - README.md
+      - LICENSE
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: 'Exciting New Features 🎉'
+      regexp: "^.*feat.*"
+      order: 0
+    - title: 'Bug Fix 🛠'
+      regexp: "^.*(Fix|fix|bug).*"
+      order: 1
+    - title: 'Refactor 🏗️'
+      regexp: "^.*refact.*"
+      order: 2
+    - title: 'Documentation 🖊️'
+      regexp: "^.*docs.*"
+      order: 3
+    - title: 'Others:'
+      order: 999
+
+dockers:
+  - image_templates:
+      - "kemingy:isite:{{ .Version }}"
+    use: buildx
+    dockerfile: Dockerfile
+    ids:
+      - isite
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "kemingy:isite:{{ .Version }}"
+    use: buildx
+    dockerfile: Dockerfile
+    ids:
+      - isite
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "kemingy:isite:{{ .Version }}"
+    image_templates:
+      - "goreleaser/goreleaser:{{ .Version }}-amd64"
+      - "goreleaser/goreleaser:{{ .Version }}-arm64"
