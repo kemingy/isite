@@ -2,13 +2,13 @@ package types
 
 type User struct {
 	Login     string `json:"login"`
-	Id        int    `json:"id"`
-	Url       string `json:"html_url"`
-	AvatarUrl string `json:"avatar_url"`
+	ID        int    `json:"id"`
+	URL       string `json:"html_url"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 type Reactions struct {
-	Url        string `json:"url"`
+	URL        string `json:"url"`
 	TotalCount int    `json:"total_count"`
 	ThumbUp    int    `json:"+1"`
 	ThumbDown  int    `json:"-1"`
@@ -21,7 +21,7 @@ type Reactions struct {
 }
 
 type Label struct {
-	Id          int    `json:"id"`
+	ID          int    `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Color       string `json:"color"`
@@ -29,10 +29,10 @@ type Label struct {
 }
 
 type Issue struct {
-	Id        int       `json:"id"`
+	ID        int       `json:"id"`
 	Number    int       `json:"number"`
 	Title     string    `json:"title"`
-	Url       string    `json:"html_url"`
+	URL       string    `json:"html_url"`
 	Body      string    `json:"body"`
 	User      User      `json:"user"`
 	State     string    `json:"state"`

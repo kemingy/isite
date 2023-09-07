@@ -94,7 +94,7 @@ func (f *IssueFilterByState) SetFilterOption(option *issueFilterOption) {
 	}
 }
 
-func (w *Website) IssueUrl() string {
+func (w *Website) IssueURL() string {
 	return fmt.Sprintf(
 		"repos/%s/%s/issues?%s&per_page=%d", w.User, w.Repo, w.FilterOption.BuildQuery(), w.PerPage)
 }
@@ -104,18 +104,18 @@ func (w *Website) Retrieve() error {
 	if err != nil {
 		return err
 	}
-	err = client.Get(w.IssueUrl(), &w.Issues)
+	err = client.Get(w.IssueURL(), &w.Issues)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *Website) Generate(engine, title, theme, themeRepo, baseUrl, output string, feed bool) error {
+func (w *Website) Generate(engine, title, theme, themeRepo, baseURL, output string, feed bool) error {
 	if title == "" {
 		title = w.Repo
 	}
-	generator := ssg.NewGenerator(engine, title, theme, themeRepo, baseUrl, feed)
+	generator := ssg.NewGenerator(engine, title, theme, themeRepo, baseURL, feed)
 	err := generator.Generate(w.Issues, "output")
 	if err != nil {
 		return errors.Wrap(err, "failed to generate static site")

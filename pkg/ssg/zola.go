@@ -49,14 +49,14 @@ render_emoji = true
 
 type Zola struct {
 	Title      string
-	BaseUrl    string
+	BaseURL    string
 	ThemeName  string
 	ThemeRepo  string
 	Feed       bool
 	Taxonomies []string
 }
 
-func NewZola(title, baseUrl, theme, themeRepo string, feed bool) *Zola {
+func NewZola(title, baseURL, theme, themeRepo string, feed bool) *Zola {
 	if theme == "" && themeRepo == "" {
 		theme = zolaDefaultTheme
 		themeRepo = zolaDefaultThemeRepo
@@ -64,7 +64,7 @@ func NewZola(title, baseUrl, theme, themeRepo string, feed bool) *Zola {
 
 	return &Zola{
 		Title:      title,
-		BaseUrl:    baseUrl,
+		BaseURL:    baseURL,
 		ThemeName:  theme,
 		ThemeRepo:  themeRepo,
 		Feed:       feed,

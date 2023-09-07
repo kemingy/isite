@@ -20,7 +20,7 @@ var (
 	title     string
 	theme     string
 	themeRepo string
-	baseUrl   string
+	baseURL   string
 	feed      bool
 )
 
@@ -42,7 +42,7 @@ func init() {
 	generateCmd.Flags().StringVar(&title, "title", "", "the title of the static site, if not set, will use the repository name")
 	generateCmd.Flags().StringVar(&theme, "theme", "", "the theme name of the static site")
 	generateCmd.Flags().StringVar(&themeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")
-	generateCmd.Flags().StringVar(&baseUrl, "base-url", "/", "the base url of the static site")
+	generateCmd.Flags().StringVar(&baseURL, "base-url", "/", "the base url of the static site")
 	generateCmd.Flags().BoolVar(&feed, "feed", true, "generate feed or not")
 }
 
@@ -61,5 +61,5 @@ func generate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Printf("found %d issues\n", len(website.Issues))
-	return website.Generate(engine, title, theme, themeRepo, baseUrl, output, feed)
+	return website.Generate(engine, title, theme, themeRepo, baseURL, output, feed)
 }
