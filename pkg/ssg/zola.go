@@ -32,7 +32,7 @@ tags = [{{ range .Labels }} "{{ .Name }}", {{ end }}]
 
 const zolaConfigTemplate = `
 title = "{{ .Title }}"
-base_url = "{{ .BaseUrl }}"
+base_url = "{{ .BaseURL }}"
 theme = "{{ .ThemeName }}"
 compile_sass = true
 generate_feed = {{ .Feed }}
@@ -137,17 +137,13 @@ func (z *Zola) Generate(issues []types.Issue, outputDir string) error {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
 
-	if err = z.generateDir(path); err != nil {
-		return err
+	for _, fn := range []func(path string) error{
+		z.generateDir, z.downloadTheme, z.generateConfig,
+	} {
+		if err = fn(path); err != nil {
+			return err
+		}
 	}
-	if err = z.downloadTheme(path); err != nil {
-		return err
-	}
-	if err = z.generateConfig(path); err != nil {
-		return err
-	}
-	if err = z.generatePost(path, issues); err != nil {
-		return err
-	}
-	return nil
+
+	return z.generatePost(path, issues)
 }

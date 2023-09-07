@@ -116,7 +116,7 @@ func (w *Website) Generate(engine, title, theme, themeRepo, baseURL, output stri
 		title = w.Repo
 	}
 	generator := ssg.NewGenerator(engine, title, theme, themeRepo, baseURL, feed)
-	err := generator.Generate(w.Issues, "output")
+	err := generator.Generate(w.Issues, output)
 	if err != nil {
 		return errors.Wrap(err, "failed to generate static site")
 	}

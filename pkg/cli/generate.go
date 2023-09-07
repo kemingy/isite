@@ -46,7 +46,7 @@ func init() {
 	generateCmd.Flags().BoolVar(&feed, "feed", true, "generate feed or not")
 }
 
-func generate(cmd *cobra.Command, args []string) error {
+func generate(_ *cobra.Command, _ []string) error {
 	if (theme == "" && themeRepo != "") || (theme != "" && themeRepo == "") {
 		return errors.New("`theme` and `theme-repo` should be set together")
 	}
