@@ -60,7 +60,7 @@ changelog:
 
 dockers:
   - image_templates:
-      - "kemingy/isite:{{ .Version }}"
+      - "kemingy/isite:{{ .Version }}-amd64"
     use: buildx
     dockerfile: .github/releaser.Dockerfile
     ids:
@@ -68,7 +68,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
   - image_templates:
-      - "kemingy/isite:{{ .Version }}"
+      - "kemingy/isite:{{ .Version }}-arm64"
     use: buildx
     dockerfile: .github/releaser.Dockerfile
     ids:
