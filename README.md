@@ -1,6 +1,6 @@
 # isite
 
-Convert issues to a website.
+Convert **i**ssues to a web**site**.
 
 ## Usage
 

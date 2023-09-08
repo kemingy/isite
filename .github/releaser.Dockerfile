@@ -1,5 +1,5 @@
 FROM scratch
 
-COPY isort /usr/bin/isort
+COPY isite /usr/bin/isite
 
-ENTRYPOINT [ "/usr/bin/isort" ]
+ENTRYPOINT [ "/usr/bin/isite" ]
