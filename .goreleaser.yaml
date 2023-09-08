@@ -62,7 +62,7 @@ dockers:
   - image_templates:
       - "kemingy/isite:{{ .Version }}"
     use: buildx
-    dockerfile: Dockerfile
+    dockerfile: .github/releaser.Dockerfile
     ids:
       - isite
     build_flag_templates:
@@ -70,7 +70,7 @@ dockers:
   - image_templates:
       - "kemingy/isite:{{ .Version }}"
     use: buildx
-    dockerfile: Dockerfile
+    dockerfile: .github/releaser.Dockerfile
     ids:
       - isite
     build_flag_templates:
