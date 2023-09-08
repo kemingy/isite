@@ -17,13 +17,14 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/tensorchord/envd/pkg/version.gitTag={{ .Tag }}
-      - -X github.com/tensorchord/envd/pkg/version.buildDate={{ .Date }}
-      - -X github.com/tensorchord/envd/pkg/version.gitCommit={{ .Commit }}
+      - -X github.com/kemingy/isite/pkg/version.gitTag={{ .Tag }}
+      - -X github.com/kemingy/isite/pkg/version.buildDate={{ .Date }}
+      - -X github.com/kemingy/isite/pkg/version.gitCommit={{ .Commit }}
 
 archives:
   - name_template: >-
       {{- .ProjectName }}_
+      {{- .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
