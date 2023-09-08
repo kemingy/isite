@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	zolaDefaultTheme     = "hyde"
-	zolaDefaultThemeRepo = "getzola/hyde"
+	zolaDefaultTheme     = "even"
+	zolaDefaultThemeRepo = "getzola/even"
 )
 
 const zolaPostTemplate = `
@@ -25,9 +25,23 @@ date = "{{ .CreatedAt }}"
 authors = ["{{ .User.Login }}"]
 [taxonomies]
 tags = [{{ range .Labels }} "{{ .Name }}", {{ end }}]
+[extra]
+author = "{{ .User.Login }}"
+avatar = "{{ .User.AvatarURL }}"
+reaction_thumbs_up = {{ .Reactions.ThumbUp }}
+reaction_thumbs_down = {{ .Reactions.ThumbDown }}
+reaction_laugh = {{ .Reactions.Laugh }}
+reaction_heart = {{ .Reactions.Heart }}
 +++
 
 {{ .Body }}
+`
+
+const zolaIndexTemplate = `
++++
+paginate_by = 10
+sort_by = "date"
++++
 `
 
 const zolaConfigTemplate = `
@@ -109,6 +123,24 @@ func (z *Zola) generateConfig(path string) error {
 	return nil
 }
 
+func (z *Zola) generateIndex(path string) error {
+	index, err := template.New("index").Parse(zolaIndexTemplate)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse zola index template")
+	}
+	var indexBuf bytes.Buffer
+	err = index.Execute(&indexBuf, z)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute zola index template")
+	}
+
+	err = os.WriteFile(filepath.Join(path, "content", "_index.md"), indexBuf.Bytes(), 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to write zola index file")
+	}
+	return nil
+}
+
 func (z *Zola) generatePost(path string, issues []types.Issue) error {
 	post, err := template.New("post").Parse(zolaPostTemplate)
 	if err != nil {
@@ -138,7 +170,7 @@ func (z *Zola) Generate(issues []types.Issue, outputDir string) error {
 	}
 
 	for _, fn := range []func(path string) error{
-		z.generateDir, z.downloadTheme, z.generateConfig,
+		z.generateDir, z.downloadTheme, z.generateConfig, z.generateIndex,
 	} {
 		if err = fn(path); err != nil {
 			return err
