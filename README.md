@@ -45,8 +45,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: {{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
