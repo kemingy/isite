@@ -17,7 +17,7 @@ After generating the Markdown based documents, you can build the website with th
 
 ## GitHub Actions
 
-> **IMPORTANT**
+> [!IMPORTANT]
 > Please remember to enable the GitHub Pages with GitHub Actions as the source.
 
 TODO: provide a GitHub Actions workflow to automate the process.
