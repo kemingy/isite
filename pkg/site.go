@@ -60,7 +60,7 @@ func NewWebsite(user, repo string, opts ...IssueFilterOption) *Website {
 		User:         user,
 		Repo:         repo,
 		FilterOption: option,
-		PerPage:      1,
+		PerPage:      100,
 		linkRegex:    linkRegex,
 	}
 }
