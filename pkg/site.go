@@ -1,7 +1,10 @@
 package pkg
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/api"
@@ -35,7 +38,8 @@ type Website struct {
 	FilterOption issueFilterOption
 	PerPage      int
 	// data
-	Issues []types.Issue
+	Issues    []types.Issue
+	linkRegex *regexp.Regexp
 }
 
 type IssueFilterOption interface {
@@ -51,11 +55,13 @@ func NewWebsite(user, repo string, opts ...IssueFilterOption) *Website {
 	for _, opt := range opts {
 		opt.SetFilterOption(&option)
 	}
+	linkRegex := regexp.MustCompile(`<([^>]+)>;\s*rel="([^"]+)"`)
 	return &Website{
 		User:         user,
 		Repo:         repo,
 		FilterOption: option,
-		PerPage:      100,
+		PerPage:      1,
+		linkRegex:    linkRegex,
 	}
 }
 
@@ -99,14 +105,42 @@ func (w *Website) IssueURL() string {
 		"repos/%s/%s/issues?%s&per_page=%d", w.User, w.Repo, w.FilterOption.BuildQuery(), w.PerPage)
 }
 
+func (w *Website) findNextPage(response *http.Response) (string, bool) {
+	for _, m := range w.linkRegex.FindAllStringSubmatch(response.Header.Get("Link"), -1) {
+		if len(m) > 2 && m[2] == "next" {
+			return m[1], true
+		}
+	}
+	return "", false
+}
+
 func (w *Website) Retrieve() error {
 	client, err := api.DefaultRESTClient()
 	if err != nil {
 		return err
 	}
-	err = client.Get(w.IssueURL(), &w.Issues)
-	if err != nil {
-		return err
+
+	// with pagination: https://github.com/cli/go-gh/blob/d32c104a9a25c9de3d7c7b07a43ae0091441c858/example_gh_test.go#L96
+	url := w.IssueURL()
+	var hasNextPage bool
+	for {
+		response, err := client.Request(http.MethodGet, url, nil)
+		if err != nil {
+			return err
+		}
+		issues := []types.Issue{}
+		decoder := json.NewDecoder(response.Body)
+		err = decoder.Decode(&issues)
+		if err != nil {
+			return err
+		}
+		w.Issues = append(w.Issues, issues...)
+		if err := response.Body.Close(); err != nil {
+			return err
+		}
+		if url, hasNextPage = w.findNextPage(response); !hasNextPage {
+			break
+		}
 	}
 	return nil
 }
