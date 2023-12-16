@@ -35,8 +35,6 @@ on:
       - labeled
       - unlabeled
   workflow_dispatch:
-  schedule:
-    - cron: '30 2 * * *'
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
