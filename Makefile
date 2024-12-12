@@ -35,3 +35,7 @@ $(GOLANGCI_LINT):
 clean:
 	@-rm -rf $(OUTPUT_DIR)
 	@-rm -rf output
+
+update:
+	@go get -u ./...
+	@go mod tidy
