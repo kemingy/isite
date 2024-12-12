@@ -15,6 +15,11 @@ After generating the Markdown based documents, you can build the website with th
 - [x] [zola](https://github.com/getzola/zola)
 - [ ] [hugo](https://github.com/gohugoio/hugo)
 
+## Installation
+
+- GitHub Releases: download the pre-built binaries from the [releases](https://github.com/kemingy/isite/releases) page.
+- Docker Image: `docker pull kemingy/isite`
+
 ## GitHub Actions
 
 > [!IMPORTANT]
