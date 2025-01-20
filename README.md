@@ -18,7 +18,7 @@ After generating the Markdown based documents, you can build the website with th
 ## Installation
 
 - GitHub Releases: download the pre-built binaries from the [releases](https://github.com/kemingy/isite/releases) page.
-- Docker Image: [`docker pull ghcr.io/kemingy/isite`](https://ghcr.io/kemingy/isite)
+- Docker Image: [`docker pull ghcr.io/kemingy/isite`](https://github.com/kemingy/isite/pkgs/container/isite)
 
 ## GitHub Actions
 
