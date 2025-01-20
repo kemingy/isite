@@ -61,7 +61,7 @@ changelog:
 
 dockers:
   - image_templates:
-      - "kemingy/isite:{{ .Version }}-amd64"
+      - "ghcr.io/kemingy/isite:{{ .Version }}-amd64"
     use: buildx
     dockerfile: .github/releaser.Dockerfile
     ids:
@@ -69,17 +69,17 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
   - image_templates:
-      - "kemingy/isite:{{ .Version }}-arm64"
+      - "ghcr.io/kemingy/isite:{{ .Version }}-arm64"
     use: buildx
     dockerfile: .github/releaser.Dockerfile
     ids:
       - isite
     build_flag_templates:
-      - "--platform=linux/arm64"
+      - "--platform=linux/arm64/v8"
     goarch: arm64
 
 docker_manifests:
-  - name_template: "kemingy/isite:{{ .Version }}"
+  - name_template: "ghcr.io/kemingy/isite:{{ .Version }}"
     image_templates:
-      - "kemingy/isite:{{ .Version }}-amd64"
-      - "kemingy/isite:{{ .Version }}-arm64"
+      - "ghcr.io/kemingy/isite:{{ .Version }}-amd64"
+      - "ghcr.io/kemingy/isite:{{ .Version }}-arm64"
