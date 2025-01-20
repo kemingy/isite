@@ -1,4 +1,4 @@
-FROM golang:1.19-bookworm as builder
+FROM golang:1.23-bookworm as builder
 
 WORKDIR /workspace
 
@@ -8,7 +8,7 @@ RUN go mod download && go mod tidy
 COPY . .
 RUN make build
 
-FROM ubuntu:22.04 as runner
+FROM ubuntu:24.04 as runner
 
 COPY --from=builder /workspace/bin/isite /usr/local/bin/isite
 

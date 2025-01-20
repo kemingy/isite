@@ -6,7 +6,7 @@ linters:
     - dupl
     - errcheck
     - errorlint
-    - exportloopref
+    - copyloopvar
     - funlen
     - goconst
     - gofmt
