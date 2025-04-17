@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      ISITE_VERSION: v0.1.4
+      ISITE_VERSION: v0.1.5
       ZOLA_VERSION: v0.17.2
       USER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
@@ -69,11 +69,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Generate markdown
         run: |
-          gh release download $ISITE_VERSION --repo kemingy/isite -p '*Linux_x86_64*' --output isite.tar.gz
-          tar zxf isite.tar.gz && mv isite /usr/local/bin
+          gh release download $ISITE_VERSION --repo kemingy/isite -p '*Linux_x86_64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
           isite generate --user $USER --repo $REPO
-          gh release download $ZOLA_VERSION --repo getzola/zola -p '*linux*' --output zola.tar.gz
-          tar zxf zola.tar.gz && mv zola /usr/local/bin
+          gh release download $ZOLA_VERSION --repo getzola/zola -p '*linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           cd output && zola build --base-url $BASE_URL
       - name: Setup Pages
         uses: actions/configure-pages@v4
