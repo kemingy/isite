@@ -76,7 +76,7 @@ jobs:
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*Linux_x86_64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
           isite generate --user $USER --repo $REPO
-          gh release download $ZOLA_VERSION --repo getzola/zola -p '*linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
+          gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           cd output && zola build --base-url $BASE_URL
       - name: Setup Pages
         uses: actions/configure-pages@v5
