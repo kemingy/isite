@@ -36,6 +36,5 @@ func CloneTheme(repo, path string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to clone the repo %s", repo)
 	}
-	fmt.Printf("clone the theme to %s\n", path)
 	return nil
 }
