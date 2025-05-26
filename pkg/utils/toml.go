@@ -7,9 +7,6 @@ import (
 )
 
 // EscapeTOMLString escapes a string to be safely embedded in a TOML file.
-// It prioritizes multi-line literal strings ('''...''') for readability.
-// If the string contains `'''` then it falls back to a multi-line basic string ("""...""")
-// with necessary escaping for `"`, `\`, and control characters.
 func EscapeTOMLString(s string) string {
 	// 1. Try Multi-line Literal String ('''...''')
 	// This is the cleanest if it doesn't contain the delimiter.
