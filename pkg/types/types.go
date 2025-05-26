@@ -39,19 +39,27 @@ type Comment struct {
 	Reactions Reactions `json:"reactions"`
 }
 
+type PullRequest struct {
+	HTMLURL  string `json:"html_url"`
+	DiffURL  string `json:"diff_url"`
+	PatchURL string `json:"patch_url"`
+	MergedAt string `json:"merged_at"`
+}
+
 type Issue struct {
-	ID        int       `json:"id"`
-	Number    int       `json:"number"` // issue number
-	Title     string    `json:"title"`
-	URL       string    `json:"html_url"`
-	Body      string    `json:"body"`
-	User      User      `json:"user"`
-	State     string    `json:"state"`
-	Locked    bool      `json:"locked"`
-	Labels    []Label   `json:"labels"`
-	CreatedAt string    `json:"created_at"`
-	UpdatedAt string    `json:"updated_at"`
-	ClosedAt  string    `json:"closed_at"`
-	Comments  []Comment `json:"-"` // ignore for un-marshalling
-	Reactions Reactions `json:"reactions"`
+	ID          int          `json:"id"`
+	Number      int          `json:"number"` // issue number
+	Title       string       `json:"title"`
+	URL         string       `json:"html_url"`
+	Body        string       `json:"body"`
+	User        User         `json:"user"`
+	State       string       `json:"state"`
+	Locked      bool         `json:"locked"`
+	Labels      []Label      `json:"labels"`
+	CreatedAt   string       `json:"created_at"`
+	UpdatedAt   string       `json:"updated_at"`
+	ClosedAt    string       `json:"closed_at"`
+	Comments    []Comment    `json:"-"` // ignore for un-marshalling
+	Reactions   Reactions    `json:"reactions"`
+	PullRequest *PullRequest `json:"pull_request,omitempty"` // used for filtering pull requests
 }

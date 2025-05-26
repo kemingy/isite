@@ -140,7 +140,14 @@ func (w *Website) Retrieve() error {
 		if err != nil {
 			return errors.Wrap(err, "failed to decode issues")
 		}
-		w.Issues = append(w.Issues, issues...)
+		// GitHub's REST API considers every pull request an issue, but not every issue is a pull request.
+		for _, issue := range issues {
+			// Identify pull requests by the `pull_request` key.
+			if issue.PullRequest != nil {
+				continue
+			}
+			w.Issues = append(w.Issues, issue)
+		}
 		if err := response.Body.Close(); err != nil {
 			return err
 		}
