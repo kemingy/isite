@@ -10,6 +10,11 @@ isite generate --help
 
 After generating the Markdown based documents, you can build the website with the following engines.
 
+## Examples
+
+- [WithCode](https://github.com/kemingy/withcode/)
+- [GitBlog](https://github.com/yihong0618/gitblog)
+
 ## Engines
 
 - [x] [zola](https://github.com/getzola/zola)
@@ -59,8 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      ISITE_VERSION: v0.1.5
-      ZOLA_VERSION: v0.17.2
+      ISITE_VERSION: v0.2.0
+      ZOLA_VERSION: v0.20.0
       USER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
       BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}

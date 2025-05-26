@@ -38,7 +38,8 @@ type Website struct {
 	FilterOption issueFilterOption
 	PerPage      int
 	// data
-	Issues    []types.Issue
+	Issues []types.Issue
+	// others
 	linkRegex *regexp.Regexp
 }
 
@@ -61,6 +62,7 @@ func NewWebsite(user, repo string, opts ...IssueFilterOption) *Website {
 		Repo:         repo,
 		FilterOption: option,
 		PerPage:      100,
+		Issues:       []types.Issue{},
 		linkRegex:    linkRegex,
 	}
 }
@@ -105,6 +107,10 @@ func (w *Website) IssueURL() string {
 		"repos/%s/%s/issues?%s&per_page=%d", w.User, w.Repo, w.FilterOption.BuildQuery(), w.PerPage)
 }
 
+func (w *Website) CommentURL(issueNumber int) string {
+	return fmt.Sprintf("repos/%s/%s/issues/%d/comments?per_page=%d", w.User, w.Repo, issueNumber, w.PerPage)
+}
+
 func (w *Website) findNextPage(response *http.Response) (string, bool) {
 	for _, m := range w.linkRegex.FindAllStringSubmatch(response.Header.Get("Link"), -1) {
 		if len(m) > 2 && m[2] == "next" {
@@ -126,13 +132,13 @@ func (w *Website) Retrieve() error {
 	for {
 		response, err := client.Request(http.MethodGet, url, nil)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to get issues")
 		}
 		issues := []types.Issue{}
 		decoder := json.NewDecoder(response.Body)
 		err = decoder.Decode(&issues)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to decode issues")
 		}
 		w.Issues = append(w.Issues, issues...)
 		if err := response.Body.Close(); err != nil {
@@ -140,6 +146,31 @@ func (w *Website) Retrieve() error {
 		}
 		if url, hasNextPage = w.findNextPage(response); !hasNextPage {
 			break
+		}
+	}
+
+	// comments
+	for i, issue := range w.Issues {
+		url = w.CommentURL(issue.Number)
+		w.Issues[i].Comments = []types.Comment{}
+		for {
+			response, err := client.Request(http.MethodGet, url, nil)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get comments for issue #%d", issue.Number)
+			}
+			comments := []types.Comment{}
+			decoder := json.NewDecoder(response.Body)
+			err = decoder.Decode(&comments)
+			if err != nil {
+				return errors.Wrapf(err, "failed to decode comments for issue #%d", issue.Number)
+			}
+			w.Issues[i].Comments = append(w.Issues[i].Comments, comments...)
+			if err := response.Body.Close(); err != nil {
+				return err
+			}
+			if url, hasNextPage = w.findNextPage(response); !hasNextPage {
+				break
+			}
 		}
 	}
 	return nil
