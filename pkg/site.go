@@ -132,13 +132,13 @@ func (w *Website) Retrieve() error {
 	for {
 		response, err := client.Request(http.MethodGet, url, nil)
 		if err != nil {
-			return errors.Errorf("failed to get issues: %v", err)
+			return errors.Wrap(err, "failed to get issues")
 		}
 		issues := []types.Issue{}
 		decoder := json.NewDecoder(response.Body)
 		err = decoder.Decode(&issues)
 		if err != nil {
-			return errors.Errorf("failed to decode issues: %v", err)
+			return errors.Wrap(err, "failed to decode issues")
 		}
 		w.Issues = append(w.Issues, issues...)
 		if err := response.Body.Close(); err != nil {
@@ -156,13 +156,13 @@ func (w *Website) Retrieve() error {
 		for {
 			response, err := client.Request(http.MethodGet, url, nil)
 			if err != nil {
-				return errors.Errorf("failed to get comments for issue #%d: %v", issue.Number, err)
+				return errors.Wrapf(err, "failed to get comments for issue #%d", issue.Number)
 			}
 			comments := []types.Comment{}
 			decoder := json.NewDecoder(response.Body)
 			err = decoder.Decode(&comments)
 			if err != nil {
-				return errors.Errorf("failed to decode comments for issue #%d: %v", issue.Number, err)
+				return errors.Wrapf(err, "failed to decode comments for issue #%d", issue.Number)
 			}
 			w.Issues[i].Comments = append(w.Issues[i].Comments, comments...)
 			if err := response.Body.Close(); err != nil {
