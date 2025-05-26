@@ -28,9 +28,20 @@ type Label struct {
 	Default     bool   `json:"default"`
 }
 
+type Comment struct {
+	ID        int       `json:"id"`
+	IssueURL  string    `json:"issue_url"`
+	HTMLURL   string    `json:"html_url"`
+	User      User      `json:"user"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+	Body      string    `json:"body"`
+	Reactions Reactions `json:"reactions"`
+}
+
 type Issue struct {
 	ID        int       `json:"id"`
-	Number    int       `json:"number"`
+	Number    int       `json:"number"` // issue number
 	Title     string    `json:"title"`
 	URL       string    `json:"html_url"`
 	Body      string    `json:"body"`
@@ -41,6 +52,6 @@ type Issue struct {
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 	ClosedAt  string    `json:"closed_at"`
-	Comments  int       `json:"comments"`
+	Comments  []Comment `json:"-"` // ignore for un-marshalling
 	Reactions Reactions `json:"reactions"`
 }

@@ -15,7 +15,7 @@ import (
 
 const (
 	zolaDefaultTheme     = "even"
-	zolaDefaultThemeRepo = "getzola/even"
+	zolaDefaultThemeRepo = "kemingy/even"
 )
 
 const zolaPostTemplate = `
@@ -32,6 +32,14 @@ reaction_thumbs_up = {{ .Reactions.ThumbUp }}
 reaction_thumbs_down = {{ .Reactions.ThumbDown }}
 reaction_laugh = {{ .Reactions.Laugh }}
 reaction_heart = {{ .Reactions.Heart }}
+{{ range .Comments }}
+[[extra.comments]]
+url = "{{ .HTMLURL }}"
+author_name = "{{ .User.Login }}"
+author_avatar = "{{ .User.AvatarURL }}"
+content = """{{ .Body }}"""
+updated_at = "{{ .UpdatedAt }}"
+{{ end }}
 +++
 
 {{ .Body }}
@@ -49,7 +57,7 @@ title = "{{ .Title }}"
 base_url = "{{ .BaseURL }}"
 theme = "{{ .ThemeName }}"
 compile_sass = true
-generate_feed = {{ .Feed }}
+generate_feeds = {{ .Feed }}
 taxonomies = [
 	{{ range .Taxonomies }}{ name = "{{ . }}"},{{ end }}
 ]
@@ -59,6 +67,11 @@ highlight_code = true
 render_emoji = true
 
 [extra]
+# this only affects the default "even" theme
+even_menu = [
+    {url = "$BASE_URL", name = "Home"},
+    {url = "$BASE_URL/tags", name = "Tags"},
+]
 `
 
 type Zola struct {
