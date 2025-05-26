@@ -79,12 +79,12 @@ jobs:
           gh release download $ZOLA_VERSION --repo getzola/zola -p '*linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           cd output && zola build --base-url $BASE_URL
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: 'output/public'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4
 ```
