@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      ISITE_VERSION: v0.2.0
+      ISITE_VERSION: v0.2.1
       ZOLA_VERSION: v0.20.0
       USER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}

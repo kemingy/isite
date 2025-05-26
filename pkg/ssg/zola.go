@@ -28,16 +28,22 @@ tags = [{{ range .Labels }} "{{ .Name }}", {{ end }}]
 [extra]
 author = "{{ .User.Login }}"
 avatar = "{{ .User.AvatarURL }}"
-reaction_thumbs_up = {{ .Reactions.ThumbUp }}
-reaction_thumbs_down = {{ .Reactions.ThumbDown }}
-reaction_laugh = {{ .Reactions.Laugh }}
-reaction_heart = {{ .Reactions.Heart }}
+issue_url = "{{ .URL }}"
+[extra.reactions]
+thumbs_up = {{ .Reactions.ThumbUp }}
+thumbs_down = {{ .Reactions.ThumbDown }}
+laugh = {{ .Reactions.Laugh }}
+heart = {{ .Reactions.Heart }}
+hooray = {{ .Reactions.Hooray }}
+confused = {{ .Reactions.Confused }}
+rocket = {{ .Reactions.Rocket }}
+eyes = {{ .Reactions.Eyes }}
 {{ range .Comments }}
 [[extra.comments]]
 url = "{{ .HTMLURL }}"
 author_name = "{{ .User.Login }}"
 author_avatar = "{{ .User.AvatarURL }}"
-content = """{{ .Body }}"""
+content = '''{{ .Body }}'''
 updated_at = "{{ .UpdatedAt }}"
 {{ end }}
 +++
