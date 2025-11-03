@@ -73,7 +73,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       # bump the versions here
-      ISITE_VERSION: v0.2.2
+      ISITE_VERSION: v0.2.3
       ZOLA_VERSION: v0.20.0
       USER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
