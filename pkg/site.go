@@ -10,8 +10,8 @@ import (
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/cockroachdb/errors"
 
+	"github.com/kemingy/isite/pkg/models"
 	"github.com/kemingy/isite/pkg/ssg"
-	"github.com/kemingy/isite/pkg/types"
 )
 
 type issueFilterOption struct {
@@ -38,7 +38,7 @@ type Website struct {
 	FilterOption issueFilterOption
 	PerPage      int
 	// data
-	Issues []types.Issue
+	Issues []models.Issue
 	// others
 	linkRegex *regexp.Regexp
 }
@@ -62,7 +62,7 @@ func NewWebsite(user, repo string, opts ...IssueFilterOption) *Website {
 		Repo:         repo,
 		FilterOption: option,
 		PerPage:      100,
-		Issues:       []types.Issue{},
+		Issues:       []models.Issue{},
 		linkRegex:    linkRegex,
 	}
 }
@@ -134,7 +134,7 @@ func (w *Website) Retrieve() error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get issues")
 		}
-		issues := []types.Issue{}
+		issues := []models.Issue{}
 		decoder := json.NewDecoder(response.Body)
 		err = decoder.Decode(&issues)
 		if err != nil {
@@ -159,13 +159,13 @@ func (w *Website) Retrieve() error {
 	// comments
 	for i, issue := range w.Issues {
 		url = w.CommentURL(issue.Number)
-		w.Issues[i].Comments = []types.Comment{}
+		w.Issues[i].Comments = []models.Comment{}
 		for {
 			response, err := client.Request(http.MethodGet, url, nil)
 			if err != nil {
 				return errors.Wrapf(err, "failed to get comments for issue #%d", issue.Number)
 			}
-			comments := []types.Comment{}
+			comments := []models.Comment{}
 			decoder := json.NewDecoder(response.Body)
 			err = decoder.Decode(&comments)
 			if err != nil {

@@ -1,11 +1,11 @@
 package ssg
 
 import (
-	"github.com/kemingy/isite/pkg/types"
+	"github.com/kemingy/isite/pkg/models"
 )
 
 type StaticSiteGenerator interface {
-	Generate(issues []types.Issue, outputDir string) error
+	Generate(issues []models.Issue, outputDir string) error
 }
 
 func NewGenerator(engine, title, theme, themeRepo, baseURL string, feed bool) StaticSiteGenerator {
