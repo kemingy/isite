@@ -9,8 +9,8 @@ import (
 
 	"github.com/cockroachdb/errors"
 
-	"github.com/kemingy/isite/pkg/types"
-	"github.com/kemingy/isite/pkg/utils"
+	"github.com/kemingy/isite/pkg/models"
+	"github.com/kemingy/isite/pkg/tools"
 )
 
 const (
@@ -121,7 +121,7 @@ func (z *Zola) generateDir(path string) error {
 }
 
 func (z *Zola) downloadTheme(path string) error {
-	return utils.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName))
+	return tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName))
 }
 
 func (z *Zola) generateConfig(path string) error {
@@ -160,9 +160,9 @@ func (z *Zola) generateIndex(path string) error {
 	return nil
 }
 
-func (z *Zola) generatePost(path string, issues []types.Issue) error {
+func (z *Zola) generatePost(path string, issues []models.Issue) error {
 	funcMap := template.FuncMap{
-		"toml_escape": utils.EscapeTOMLString,
+		"toml_escape": tools.EscapeTOMLString,
 	}
 	post, err := template.New("post").Funcs(funcMap).Parse(zolaPostTemplate)
 	if err != nil {
@@ -185,7 +185,7 @@ func (z *Zola) generatePost(path string, issues []types.Issue) error {
 	return nil
 }
 
-func (z *Zola) Generate(issues []types.Issue, outputDir string) error {
+func (z *Zola) Generate(issues []models.Issue, outputDir string) error {
 	path, err := filepath.Abs(outputDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)

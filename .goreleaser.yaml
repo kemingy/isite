@@ -33,7 +33,7 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end -}}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
     builds_info:
       group: root
       owner: root
@@ -60,27 +60,14 @@ changelog:
     - title: 'Others:'
       order: 999
 
-dockers:
-  - image_templates:
-      - "ghcr.io/kemingy/isite:{{ .Version }}-amd64"
-    use: buildx
+dockers_v2:
+  - id: isite
+    images:
+      - "ghcr.io/kemingy/isite"
     dockerfile: .github/releaser.Dockerfile
-    ids:
-      - isite
-    build_flag_templates:
-      - "--platform=linux/amd64"
-  - image_templates:
-      - "ghcr.io/kemingy/isite:{{ .Version }}-arm64"
-    use: buildx
-    dockerfile: .github/releaser.Dockerfile
-    ids:
-      - isite
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-    goarch: arm64
-
-docker_manifests:
-  - name_template: "ghcr.io/kemingy/isite:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/kemingy/isite:{{ .Version }}-amd64"
-      - "ghcr.io/kemingy/isite:{{ .Version }}-arm64"
+    tags:
+      - "{{ .Version }}"
+    ids: ["isite"]
+    platforms:
+      - linux/amd64
+      - linux/arm64
