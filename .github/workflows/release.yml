@@ -19,6 +19,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
 
       - name: Login to ghcr.io
         uses: docker/login-action@v3
