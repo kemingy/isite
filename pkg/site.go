@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -73,7 +74,7 @@ type IssueFilterByCreator struct {
 
 func (f *IssueFilterByCreator) SetFilterOption(option *issueFilterOption) {
 	if f.Creator != "" {
-		option.Creator = f.Creator
+		option.Creator = url.QueryEscape(f.Creator)
 	}
 }
 
@@ -84,7 +85,7 @@ type IssueFilterByLabels struct {
 func (f *IssueFilterByLabels) SetFilterOption(option *issueFilterOption) {
 	for _, label := range f.Labels {
 		if label != "" {
-			option.Labels = append(option.Labels, label)
+			option.Labels = append(option.Labels, url.QueryEscape(label))
 		}
 	}
 }
@@ -96,7 +97,7 @@ type IssueFilterByState struct {
 func (f *IssueFilterByState) SetFilterOption(option *issueFilterOption) {
 	for _, state := range []string{"open", "closed", "all"} {
 		if state == f.State {
-			option.State = f.State
+			option.State = url.QueryEscape(f.State)
 			return
 		}
 	}
