@@ -97,7 +97,7 @@ type IssueFilterByState struct {
 func (f *IssueFilterByState) SetFilterOption(option *issueFilterOption) {
 	for _, state := range []string{"open", "closed", "all"} {
 		if state == f.State {
-			option.State = url.QueryEscape(f.State)
+			option.State = f.State
 			return
 		}
 	}
