@@ -60,6 +60,7 @@ sort_by = "date"
 
 const zolaConfigTemplate = `
 title = "{{ .Title }}"
+description = "{{ .Description }}"
 base_url = "{{ .BaseURL }}"
 theme = "{{ .ThemeName }}"
 compile_sass = true
@@ -78,30 +79,37 @@ even_menu = [
     {url = "$BASE_URL", name = "Home"},
     {url = "$BASE_URL/tags", name = "Tags"},
 ]
+katex_enable = {{ .Katex }}
 `
 
 type Zola struct {
-	Title      string
-	BaseURL    string
-	ThemeName  string
-	ThemeRepo  string
-	Feed       bool
-	Taxonomies []string
+	Title       string
+	BaseURL     string
+	ThemeName   string
+	ThemeRepo   string
+	Description string
+	Feed        bool
+	Katex       bool
+	Taxonomies  []string
 }
 
-func NewZola(title, baseURL, theme, themeRepo string, feed bool) *Zola {
+func NewZola(cmd *models.Command, meta *models.Repository) *Zola {
+	theme := cmd.Theme
+	themeRepo := cmd.ThemeRepo
 	if theme == "" && themeRepo == "" {
 		theme = zolaDefaultTheme
 		themeRepo = zolaDefaultThemeRepo
 	}
 
 	return &Zola{
-		Title:      title,
-		BaseURL:    baseURL,
-		ThemeName:  theme,
-		ThemeRepo:  themeRepo,
-		Feed:       feed,
-		Taxonomies: []string{"tags"},
+		Title:       cmd.Title,
+		BaseURL:     cmd.BaseURL,
+		ThemeName:   theme,
+		ThemeRepo:   themeRepo,
+		Description: meta.Description,
+		Feed:        cmd.Feed,
+		Katex:       cmd.Katex,
+		Taxonomies:  []string{"tags"},
 	}
 }
 

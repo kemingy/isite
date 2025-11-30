@@ -63,3 +63,22 @@ type Issue struct {
 	Reactions   Reactions    `json:"reactions"`
 	PullRequest *PullRequest `json:"pull_request,omitempty"` // used for filtering pull requests
 }
+
+type Repository struct {
+	ID              int      `json:"id"`
+	Name            string   `json:"name"`
+	FullName        string   `json:"full_name"`
+	Owner           User     `json:"owner"`
+	Private         bool     `json:"private"`
+	Description     string   `json:"description"`
+	Fork            bool     `json:"fork"`
+	ForksCount      int      `json:"forks_count"`
+	StargazersCount int      `json:"stargazers_count"`
+	WatchersCount   int      `json:"watchers_count"`
+	OpenIssuesCount int      `json:"open_issues_count"`
+	Topics          []string `json:"topics"`
+	Archived        bool     `json:"archived"`
+	PushedAt        string   `json:"pushed_at"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
+}
