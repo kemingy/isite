@@ -8,10 +8,10 @@ type StaticSiteGenerator interface {
 	Generate(issues []models.Issue, outputDir string) error
 }
 
-func NewGenerator(engine, title, theme, themeRepo, baseURL string, feed bool) StaticSiteGenerator {
-	switch engine {
+func NewGenerator(cmd *models.Command, meta *models.Repository) StaticSiteGenerator {
+	switch cmd.Engine {
 	case "zola":
-		return NewZola(title, baseURL, theme, themeRepo, feed)
+		return NewZola(cmd, meta)
 	default:
 		return nil
 	}

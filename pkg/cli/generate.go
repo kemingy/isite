@@ -7,21 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kemingy/isite/pkg"
-)
-
-var (
-	// filter
-	creator string
-	state   string
-	label   []string
-	// config
-	engine    string
-	output    string
-	title     string
-	theme     string
-	themeRepo string
-	baseURL   string
-	feed      bool
+	"github.com/kemingy/isite/pkg/models"
 )
 
 var generateCmd = &cobra.Command{
@@ -29,37 +15,39 @@ var generateCmd = &cobra.Command{
 	Short: "generate static site from github issue",
 	RunE:  generate,
 }
+var cmd = &models.Command{}
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
 
-	generateCmd.Flags().StringVar(&creator, "creator", "", "filter the github issue by the creator")
-	generateCmd.Flags().StringVar(&state, "state", "open", "filter the github issue by the state, default is `open`, choose from [open, closed, all]")
-	generateCmd.Flags().StringSliceVar(&label, "label", []string{}, "filter the github issue by the labels")
+	generateCmd.Flags().StringVar(&cmd.Creator, "creator", "", "filter the github issue by the creator")
+	generateCmd.Flags().StringVar(&cmd.State, "state", "open", "filter the github issue by the state, default is `open`, choose from [open, closed, all]")
+	generateCmd.Flags().StringSliceVar(&cmd.Label, "label", []string{}, "filter the github issue by the labels")
 
-	generateCmd.Flags().StringVar(&engine, "engine", "zola", "the static site generator engine, default is `zola`, choose from [zola]")
-	generateCmd.Flags().StringVar(&output, "output", "output", "the output dir for the generated files")
-	generateCmd.Flags().StringVar(&title, "title", "", "the title of the static site, if not set, will use the repository name")
-	generateCmd.Flags().StringVar(&theme, "theme", "", "the theme name of the static site")
-	generateCmd.Flags().StringVar(&themeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")
-	generateCmd.Flags().StringVar(&baseURL, "base-url", "/", "the base url of the static site")
-	generateCmd.Flags().BoolVar(&feed, "feed", true, "generate feed or not")
+	generateCmd.Flags().StringVar(&cmd.Engine, "engine", "zola", "the static site generator engine, default is `zola`, choose from [zola]")
+	generateCmd.Flags().StringVar(&cmd.Output, "output", "output", "the output dir for the generated files")
+	generateCmd.Flags().StringVar(&cmd.Title, "title", "", "the title of the static site, if not set, will use the repository name")
+	generateCmd.Flags().StringVar(&cmd.Theme, "theme", "", "the theme name of the static site")
+	generateCmd.Flags().StringVar(&cmd.ThemeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")
+	generateCmd.Flags().StringVar(&cmd.BaseURL, "base-url", "/", "the base url of the static site")
+	generateCmd.Flags().BoolVar(&cmd.Feed, "feed", true, "generate feed or not")
+	generateCmd.Flags().BoolVar(&cmd.Katex, "katex", false, "enable katex support or not")
 }
 
 func generate(_ *cobra.Command, _ []string) error {
-	if (theme == "" && themeRepo != "") || (theme != "" && themeRepo == "") {
+	if (cmd.Theme == "" && cmd.ThemeRepo != "") || (cmd.Theme != "" && cmd.ThemeRepo == "") {
 		return errors.New("`theme` and `theme-repo` should be set together")
 	}
 
 	website := pkg.NewWebsite(
 		user, repo,
-		&pkg.IssueFilterByCreator{Creator: creator},
-		&pkg.IssueFilterByState{State: state},
-		&pkg.IssueFilterByLabels{Labels: label},
+		&pkg.IssueFilterByCreator{Creator: cmd.Creator},
+		&pkg.IssueFilterByState{State: cmd.State},
+		&pkg.IssueFilterByLabels{Labels: cmd.Label},
 	)
 	if err := website.Retrieve(); err != nil {
 		return err
 	}
 	fmt.Printf("found %d issues\n", len(website.Issues))
-	return website.Generate(engine, title, theme, themeRepo, baseURL, output, feed)
+	return website.Generate(cmd)
 }
