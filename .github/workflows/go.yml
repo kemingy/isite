@@ -38,3 +38,12 @@ jobs:
 
     - name: Lint
       run: make lint
+
+    - name: Test
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ZOLA_VERSION: v0.20.0
+      run: |
+        gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
+        ./bin/isite generate --repo withcode --user kemingy --label "python"
+        cd output && zola build
