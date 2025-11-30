@@ -126,6 +126,24 @@ func (w *Website) MetaURL() string {
 	return fmt.Sprintf("repos/%s/%s", w.User, w.Repo)
 }
 
+func (w *Website) FetchMeta(client *api.RESTClient, url string) (*models.Repository, error) {
+	response, err := client.Request(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get repository meta")
+	}
+	repo := models.Repository{}
+	decoder := json.NewDecoder(response.Body)
+	err = decoder.Decode(&repo)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode repository meta")
+	}
+	if err := response.Body.Close(); err != nil {
+		return nil, err
+	}
+	return &repo, nil
+}
+
+// nolint: funlen
 func (w *Website) Retrieve() error {
 	client, err := api.DefaultRESTClient()
 	if err != nil {
@@ -133,24 +151,14 @@ func (w *Website) Retrieve() error {
 	}
 
 	// meta
-	url := w.MetaURL()
-	response, err := client.Request(http.MethodGet, url, nil)
+	repo, err := w.FetchMeta(client, w.MetaURL())
 	if err != nil {
-		return errors.Wrap(err, "failed to get repository meta")
-	}
-	repo := models.Repository{}
-	decoder := json.NewDecoder(response.Body)
-	err = decoder.Decode(&repo)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode repository meta")
-	}
-	if err := response.Body.Close(); err != nil {
 		return err
 	}
-	w.Meta = &repo
+	w.Meta = repo
 
 	// with pagination: https://github.com/cli/go-gh/blob/d32c104a9a25c9de3d7c7b07a43ae0091441c858/example_gh_test.go#L96
-	url = w.IssueURL()
+	url := w.IssueURL()
 	var hasNextPage bool
 	for {
 		response, err := client.Request(http.MethodGet, url, nil)

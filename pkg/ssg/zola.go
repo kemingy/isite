@@ -60,7 +60,7 @@ sort_by = "date"
 
 const zolaConfigTemplate = `
 title = "{{ .Title }}"
-description = "{{ .Description }}"
+description = "{{ toml_escape .Description }}"
 base_url = "{{ .BaseURL }}"
 theme = "{{ .ThemeName }}"
 compile_sass = true
@@ -100,13 +100,17 @@ func NewZola(cmd *models.Command, meta *models.Repository) *Zola {
 		theme = zolaDefaultTheme
 		themeRepo = zolaDefaultThemeRepo
 	}
+	description := cmd.Title
+	if meta != nil && len(meta.Description) > 0 {
+		description = meta.Description
+	}
 
 	return &Zola{
 		Title:       cmd.Title,
 		BaseURL:     cmd.BaseURL,
 		ThemeName:   theme,
 		ThemeRepo:   themeRepo,
-		Description: meta.Description,
+		Description: description,
 		Feed:        cmd.Feed,
 		Katex:       cmd.Katex,
 		Taxonomies:  []string{"tags"},
@@ -133,7 +137,10 @@ func (z *Zola) downloadTheme(path string) error {
 }
 
 func (z *Zola) generateConfig(path string) error {
-	config, err := template.New("config").Parse(zolaConfigTemplate)
+	funcMap := template.FuncMap{
+		"toml_escape": tools.EscapeTOMLString,
+	}
+	config, err := template.New("config").Funcs(funcMap).Parse(zolaConfigTemplate)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse zola config template")
 	}
