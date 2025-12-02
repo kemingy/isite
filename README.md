@@ -81,7 +81,7 @@ jobs:
       BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Generate markdown
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
@@ -91,7 +91,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: 'output/public'
       - name: Deploy to GitHub Pages
