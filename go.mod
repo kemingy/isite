@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/cockroachdb/errors v1.12.0
-	github.com/go-git/go-git/v5 v5.16.3
+	github.com/go-git/go-git/v5 v5.16.4
 	github.com/spf13/cobra v1.10.1
 )
 
