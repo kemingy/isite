@@ -14,9 +14,9 @@ BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 
 BUILD_FLAGS ?= -s -w \
-  -X $(ROOT)/pkg/version.gitTag=$(GIT_TAG) \
-  -X $(ROOT)/pkg/version.buildDate=$(BUILD_DATE) \
-  -X $(ROOT)/pkg/version.gitCommit=$(GIT_COMMIT) \
+  -X $(ROOT)/pkg/pkgversion.gitTag=$(GIT_TAG) \
+  -X $(ROOT)/pkg/pkgversion.buildDate=$(BUILD_DATE) \
+  -X $(ROOT)/pkg/pkgversion.gitCommit=$(GIT_COMMIT) \
 
 .DEFAULT_GOAL:=build
 
