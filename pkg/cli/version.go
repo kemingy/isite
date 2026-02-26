@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kemingy/isite/pkg/version"
+	"github.com/kemingy/isite/pkg/pkgversion"
 )
 
 var (
@@ -23,7 +23,7 @@ func init() {
 }
 
 func commandVersion(cmd *cobra.Command, _ []string) {
-	ver := version.GetVersionInfo()
+	ver := pkgversion.GetVersionInfo()
 	if short {
 		cmd.Println(ver.Version)
 		return
