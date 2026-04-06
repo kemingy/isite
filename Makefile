@@ -21,7 +21,7 @@ BUILD_FLAGS ?= -s -w \
 .DEFAULT_GOAL:=build
 
 build:
-	@go build -trimpath -o $(OUTPUT_DIR)/$(TARGET) -ldflags "$(BUILD_FLAGS)" $(CMD_DIR)/$(TARGET)
+	@CGO_ENABLED=0 go build -trimpath -o $(OUTPUT_DIR)/$(TARGET) -ldflags "$(BUILD_FLAGS)" $(CMD_DIR)/$(TARGET)
 
 format:
 	@go fmt ./...
