@@ -1,6 +1,7 @@
 TARGET := isite
 OUTPUT_DIR := ./bin
 CMD_DIR := ./cmd
+CGO_ENABLED ?= 0
 
 # Golang dir
 ROOT := github.com/kemingy/isite
@@ -21,7 +22,7 @@ BUILD_FLAGS ?= -s -w \
 .DEFAULT_GOAL:=build
 
 build:
-	@CGO_ENABLED=0 go build -trimpath -o $(OUTPUT_DIR)/$(TARGET) -ldflags "$(BUILD_FLAGS)" $(CMD_DIR)/$(TARGET)
+	@CGO_ENABLED=$(CGO_ENABLED) go build -trimpath -o $(OUTPUT_DIR)/$(TARGET) -ldflags "$(BUILD_FLAGS)" $(CMD_DIR)/$(TARGET)
 
 format:
 	@go fmt ./...
