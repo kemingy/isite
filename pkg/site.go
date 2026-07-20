@@ -219,6 +219,9 @@ func (w *Website) Generate(cmd *models.Command) error {
 		cmd.Title = w.Repo
 	}
 	generator := ssg.NewGenerator(cmd, w.Meta)
+	if generator == nil {
+		return errors.Errorf("unsupported static site generator engine %q", cmd.Engine)
+	}
 	err := generator.Generate(w.Issues, cmd.Output)
 	if err != nil {
 		return errors.Wrap(err, "failed to generate static site")

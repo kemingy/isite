@@ -21,7 +21,22 @@ After generating the Markdown based documents, you can build the website with th
 
 - [x] [zola](https://github.com/getzola/zola)
   - default theme: [Even](https://github.com/kemingy/even), modified to support comments and reactions
+- [x] [Astro](https://docs.astro.build/)
+  - generates a complete Astro project with issue pages, tags, comments, reactions, and optional RSS/KaTeX support
 - [ ] [hugo](https://github.com/gohugoio/hugo)
+
+### Astro
+
+```bash
+isite generate --engine astro --base-url https://example.github.io/repository
+cd output
+npm install
+npm run build
+```
+
+The static site is written to `output/dist`. The `--theme` and `--theme-repo` flags are Zola-only because Astro themes are complete projects rather than portable theme directories.
+
+When a repository already has a `config.toml`, Astro reuses `extra.even_title` and `extra.even_menu` by default. This preserves existing custom navigation while generating compatible `/issue-<number>/`, `/tags/<label>/`, and paginated `/page/<number>/` routes. Use `--config <path>` to select a different file or `--config ''` to disable this compatibility behavior.
 
 ## Installation
 
@@ -97,6 +112,23 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+```
+
+The workflow above builds with Zola. To deploy the Astro engine instead, use these generation/build steps and upload `output/dist`:
+
+```yaml
+      - name: Generate Astro project
+        run: |
+          gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
+          isite generate --engine astro --user $USER --repo $REPO --base-url $BASE_URL
+      - name: Build Astro site
+        run: |
+          npm install --prefix output
+          npm run build --prefix output
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'output/dist'
 ```
 
 ## Customization

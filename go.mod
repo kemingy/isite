@@ -6,6 +6,7 @@ require (
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/cockroachdb/errors v1.14.0
 	github.com/go-git/go-git/v5 v5.19.1
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/spf13/cobra v1.10.2
 )
 

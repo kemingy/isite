@@ -12,6 +12,8 @@ func NewGenerator(cmd *models.Command, meta *models.Repository) StaticSiteGenera
 	switch cmd.Engine {
 	case "zola":
 		return NewZola(cmd, meta)
+	case "astro":
+		return NewAstro(cmd, meta)
 	default:
 		return nil
 	}

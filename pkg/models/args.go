@@ -8,6 +8,7 @@ type Command struct {
 	// config
 	Engine    string
 	Output    string
+	Config    string
 	Title     string
 	Theme     string
 	ThemeRepo string
