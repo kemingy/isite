@@ -26,7 +26,6 @@ func init() {
 
 	generateCmd.Flags().StringVar(&cmd.Engine, "engine", "zola", "the static site generator engine, default is `zola`, choose from [zola, astro]")
 	generateCmd.Flags().StringVar(&cmd.Output, "output", "output", "the output dir for the generated files")
-	generateCmd.Flags().StringVar(&cmd.Config, "config", "config.toml", "the repository config file (Astro reuses extra.even_menu when present)")
 	generateCmd.Flags().StringVar(&cmd.Title, "title", "", "the title of the static site, if not set, will use the repository name")
 	generateCmd.Flags().StringVar(&cmd.Theme, "theme", "", "the theme name of the static site")
 	generateCmd.Flags().StringVar(&cmd.ThemeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")

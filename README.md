@@ -22,7 +22,8 @@ After generating the Markdown based documents, you can build the website with th
 - [x] [zola](https://github.com/getzola/zola)
   - default theme: [Even](https://github.com/kemingy/even), modified to support comments and reactions
 - [x] [Astro](https://docs.astro.build/)
-  - generates a complete Astro project with issue pages, tags, comments, reactions, and optional RSS/KaTeX support
+  - default theme: [AstroPaper](https://github.com/satnaing/astro-paper)
+  - clones the theme project and generates standard blog posts with tags, comments, reactions, and optional RSS/KaTeX support
 - [ ] [hugo](https://github.com/gohugoio/hugo)
 
 ### Astro
@@ -34,9 +35,15 @@ npm install
 npm run build
 ```
 
-The static site is written to `output/dist`. The `--theme` and `--theme-repo` flags are Zola-only because Astro themes are complete projects rather than portable theme directories.
+The static site is written to `output/dist`. Astro uses the upstream AstroPaper project rather than an isite-specific page implementation. Issues are written to `src/content/posts/issue-<number>.md`; reactions and comments are ordinary Markdown sections, so they remain portable theme content.
 
-When a repository already has a `config.toml`, Astro reuses `extra.even_title` and `extra.even_menu` by default. This preserves existing custom navigation while generating compatible `/issue-<number>/`, `/tags/<label>/`, and paginated `/page/<number>/` routes. Use `--config <path>` to select a different file or `--config ''` to disable this compatibility behavior.
+Like the Zola engine, Astro accepts `--theme` and `--theme-repo`. The selected repository must be an AstroPaper-compatible theme or fork because Astro does not define a common theme interface. The output directory may be empty or an existing compatible project; subsequent runs refresh only `issue-*.md` and preserve other posts.
+
+```bash
+isite generate --engine astro \
+  --theme my-paper \
+  --theme-repo owner/my-astro-paper-fork
+```
 
 ## Installation
 
@@ -142,6 +149,8 @@ Change the `BASE_URL` in the GitHub Actions workflow to your custom domain name.
 ```bash
 isite generate --theme <theme_name> --theme-repo <user/repo>
 ```
+
+For Astro, use an AstroPaper-compatible repository and add `--engine astro`.
 
 ### Backup Markdown files to the Repo
 

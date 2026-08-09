@@ -35,13 +35,29 @@ func TestAstroDeployment(t *testing.T) {
 	}
 }
 
+func TestNewAstroUsesAstroPaperByDefault(t *testing.T) {
+	t.Parallel()
+	generator := NewAstro(&models.Command{Title: "Notes"}, nil)
+	if generator.Theme != astroDefaultTheme || generator.ThemeRepo != astroDefaultThemeRepo {
+		t.Fatalf("default theme = %q (%q), want %q (%q)", generator.Theme, generator.ThemeRepo, astroDefaultTheme, astroDefaultThemeRepo)
+	}
+
+	custom := NewAstro(&models.Command{Title: "Notes", Theme: "paper-fork", ThemeRepo: "example/paper-fork"}, nil)
+	if custom.Theme != "paper-fork" || custom.ThemeRepo != "example/paper-fork" {
+		t.Fatalf("custom theme flags were not preserved: %#v", custom)
+	}
+}
+
 func TestAstroGenerate(t *testing.T) {
 	t.Parallel()
 	output := t.TempDir()
+	prepareAstroPaper(t, output)
 	cmd := &models.Command{
 		Engine: "astro", Title: `A "quoted" title`, BaseURL: "https://example.github.io/notes/", Feed: true, Katex: true,
 	}
-	meta := &models.Repository{Description: "Notes from issues"}
+	meta := &models.Repository{
+		Description: "Notes from issues", FullName: "example/notes", Owner: models.User{Login: "owner"},
+	}
 	generator := NewAstro(cmd, meta)
 	issue := testAstroIssue()
 
@@ -49,96 +65,122 @@ func TestAstroGenerate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertFileContains(t, filepath.Join(output, "astro.config.mjs"),
-		`site: "https://example.github.io"`, `base: "/notes"`, "optimizeImages", "remarkMath", "rehypeKatex")
+	assertFileContains(t, filepath.Join(output, "astro.config.ts"),
+		`base: "/notes"`, "remarkMath", "rehypeKatex")
 	assertFileContains(t, filepath.Join(output, "package.json"),
-		`"astro": "^7.1.1"`, `"@astrojs/rss": "^4.0.19"`, `"@astrojs/markdown-remark": "^7.2.1"`, `"katex": "^0.18.1"`)
-	assertFileContains(t, filepath.Join(output, "src", "lib", "site.ts"),
-		`export const SITE_TITLE = "A \"quoted\" title"`, `export const FEED = true`)
-	assertFileContains(t, filepath.Join(output, "src", "content", "issues", "issue-42.md"),
-		`"title": "Front matter: \"safe\""`, `"content": "A multiline comment\nwith --- inside."`, "# Markdown body")
-	assertFileContains(t, filepath.Join(output, "src", "pages", "rss.xml.js"), "@astrojs/rss")
-	assertFileContains(t, filepath.Join(output, "src", "layouts", "Base.astro"), "katex/dist/katex.min.css")
-	assertFileContains(t, filepath.Join(output, "src", "pages", "issue-[number].astro"),
-		`url.searchParams.set("s", "64")`)
-	assertFileContains(t, filepath.Join(output, "src", "styles", "global.css"), `content-visibility: auto`)
-	assertFileContains(t, filepath.Join(output, "src", "lib", "image-optimizer.mjs"),
-		`"astro:build:done"`, `addImageAttributes(tag, lazy)`)
+		`"astro": "^6.4.2"`, `"katex": "^0.16.22"`, `"rehype-katex": "^7.0.1"`, `"remark-math": "^6.0.0"`)
+	assertFileContains(t, filepath.Join(output, "astro-paper.config.ts"),
+		`url: "https://example.github.io/notes/"`, `title: "A \"quoted\" title"`, `author: "owner"`,
+		`https://github.com/example/notes`)
+	assertFileContains(t, filepath.Join(output, astroPostsDir, "issue-42.md"),
+		`title: "Front matter: \"safe\""`, `tags: ["astro","Top"]`, "# Markdown body",
+		"## Reactions", "👍 3 · ❤️ 2", "## Comments", "A multiline comment\nwith --- inside.")
+	assertFileContains(t, filepath.Join(output, "src", "pages", "index.astro"),
+		"{config.site.title}", "{config.site.description}", "rss.xml")
+	assertFileContains(t, filepath.Join(output, "src", "content", "pages", "about.md"),
+		"Notes from issues", "https://github.com/example/notes/issues")
+	assertFileContains(t, filepath.Join(output, "src", "styles", "global.css"), "katex/dist/katex.min.css")
 }
 
 func TestAstroGenerateWithoutOptionalFeatures(t *testing.T) {
 	t.Parallel()
 	output := t.TempDir()
-	staleRSS := filepath.Join(output, "src", "pages", "rss.xml.js")
-	if err := os.MkdirAll(filepath.Dir(staleRSS), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(staleRSS, []byte("stale"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	generator := NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: false}, nil)
+	prepareAstroPaper(t, output)
+	generator := NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: true, Katex: true}, nil)
 	if err := generator.Generate(nil, output); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(staleRSS); !os.IsNotExist(err) {
+
+	generator = NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: false, Katex: false}, nil)
+	if err := generator.Generate(nil, output); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(output, "src", "pages", "rss.xml.ts")); !os.IsNotExist(err) {
 		t.Fatalf("RSS page should not exist when feed generation is disabled: %v", err)
 	}
-	packageJSON, err := os.ReadFile(filepath.Join(output, "package.json"))
+	for _, name := range []string{"package.json", "astro.config.ts", filepath.Join("src", "styles", "global.css")} {
+		content, err := os.ReadFile(filepath.Join(output, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, unwanted := range []string{"remark-math", "rehype-katex", "katex/dist", "remarkMath", "rehypeKatex"} {
+			if strings.Contains(string(content), unwanted) {
+				t.Fatalf("%s unexpectedly contains %q", name, unwanted)
+			}
+		}
+	}
+	content, err := os.ReadFile(filepath.Join(output, "src", "pages", "index.astro"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unwanted := range []string{"@astrojs/rss", "@astrojs/markdown-remark", "remark-math", "rehype-katex", "katex"} {
-		if strings.Contains(string(packageJSON), unwanted) {
-			t.Fatalf("package.json unexpectedly contains %q", unwanted)
-		}
+	if strings.Contains(string(content), "rss.xml") {
+		t.Fatal("home page unexpectedly links to disabled RSS feed")
+	}
+
+	generator = NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: true, Katex: false}, nil)
+	if err := generator.Generate(nil, output); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(output, "src", "pages", "rss.xml.ts")); err != nil {
+		t.Fatalf("RSS page was not restored when the feed was re-enabled: %v", err)
 	}
 }
 
-func TestAstroLoadsExistingEvenMenu(t *testing.T) {
+func TestAstroRefreshPreservesNonGeneratedPosts(t *testing.T) {
 	t.Parallel()
 	output := t.TempDir()
-	configPath := filepath.Join(output, "config.toml")
-	config := `[extra]
-even_title = "A personal blog"
-even_menu = [
-  {url = "$BASE_URL", name = "Home"},
-  {url = "$BASE_URL/tags/top/", name = "Top"},
-  {url = "$BASE_URL/issue-42/", name = "About"},
-]
-`
-	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+	prepareAstroPaper(t, output)
+	custom := filepath.Join(output, astroPostsDir, "custom.md")
+	stale := filepath.Join(output, astroPostsDir, "issue-99.md")
+	if err := os.MkdirAll(filepath.Dir(custom), 0755); err != nil {
 		t.Fatal(err)
 	}
-	generator := NewAstro(&models.Command{Title: "Notes", Config: configPath}, nil)
+	if err := os.WriteFile(custom, []byte("custom"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(stale, []byte("stale"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	generator := NewAstro(&models.Command{Title: "Notes", Feed: true}, nil)
 	if err := generator.Generate([]models.Issue{testAstroIssue()}, output); err != nil {
 		t.Fatal(err)
 	}
-	assertFileContains(t, filepath.Join(output, "src", "lib", "site.ts"),
-		`SITE_TITLE = "A personal blog"`, `"url":"tags/top/","name":"Top"`, `"url":"issue-42/","name":"About"`)
+	if _, err := os.Stat(custom); err != nil {
+		t.Fatalf("custom post was not preserved: %v", err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("stale generated post was not removed: %v", err)
+	}
 }
 
-func TestAstroRejectsZolaThemeFlags(t *testing.T) {
+func TestAstroRejectsIncompatibleTheme(t *testing.T) {
 	t.Parallel()
-	generator := NewAstro(&models.Command{Title: "Notes", Theme: "even", ThemeRepo: "kemingy/even"}, nil)
-	err := generator.Generate(nil, t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "only supported by the zola engine") {
-		t.Fatalf("expected a zola-only theme error, got %v", err)
+	output := t.TempDir()
+	if err := os.WriteFile(filepath.Join(output, "package.json"), []byte(`{"dependencies":{}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	generator := NewAstro(&models.Command{Title: "Notes", Theme: "other", ThemeRepo: "example/other"}, nil)
+	err := generator.Generate(nil, output)
+	if err == nil || !strings.Contains(err.Error(), "not AstroPaper-compatible") {
+		t.Fatalf("expected a theme compatibility error, got %v", err)
 	}
 }
 
 func TestAstroGeneratedProjectBuilds(t *testing.T) {
 	if os.Getenv("ISITE_ASTRO_INTEGRATION") == "" {
-		t.Skip("set ISITE_ASTRO_INTEGRATION=1 to install dependencies and build the generated Astro project")
+		t.Skip("set ISITE_ASTRO_INTEGRATION=1 to clone AstroPaper, install dependencies and build the generated project")
 	}
 	if _, err := exec.LookPath("npm"); err != nil {
 		t.Skip("npm is not installed")
 	}
 
-	output := t.TempDir()
+	output := filepath.Join(t.TempDir(), "site")
 	generator := NewAstro(&models.Command{
 		Title: "Integration Notes", BaseURL: "https://example.github.io/notes", Feed: true, Katex: true,
-	}, &models.Repository{Description: "An integration build"})
+	}, &models.Repository{
+		Description: "An integration build", FullName: "example/notes", Owner: models.User{Login: "example"},
+	})
 	issues := make([]models.Issue, 11)
 	for index := range issues {
 		issues[index] = testAstroIssue()
@@ -156,15 +198,56 @@ func TestAstroGeneratedProjectBuilds(t *testing.T) {
 			t.Fatalf("npm %s failed: %v\n%s", strings.Join(args, " "), err, result)
 		}
 	}
-	for _, name := range []string{"index.html", "page/2/index.html", "issue-42/index.html", "tags/index.html", "tags/astro/index.html", "tags/top/index.html", "rss.xml"} {
+	for _, name := range []string{
+		"index.html", "posts/2/index.html", "posts/issue-42/index.html", "tags/index.html", "tags/astro/index.html", "rss.xml",
+	} {
 		if _, err := os.Stat(filepath.Join(output, "dist", filepath.FromSlash(name))); err != nil {
 			t.Fatalf("expected build output %s: %v", name, err)
 		}
 	}
-	assertFileContains(t, filepath.Join(output, "dist", "index.html"), `/notes/issue-42/`, `/notes/page/2/`, `read the source issue`, `Read more...`)
-	assertFileContains(t, filepath.Join(output, "dist", "issue-42", "index.html"),
-		`/notes/tags/astro/`, `loading="lazy"`, `decoding="async"`, `s=64`)
-	assertFileContains(t, filepath.Join(output, "dist", "rss.xml"), `https://example.github.io/notes/issue-42/`)
+	assertFileContains(t, filepath.Join(output, "dist", "index.html"), "Integration Notes", `/notes/posts/issue-42/`)
+	assertFileContains(t, filepath.Join(output, "dist", "posts", "issue-42", "index.html"),
+		`/notes/tags/astro/`, "GitHub issue #42", "Comments", "Reactions")
+	assertFileContains(t, filepath.Join(output, "dist", "rss.xml"), `/notes/posts/issue-42`)
+}
+
+func prepareAstroPaper(t *testing.T, output string) {
+	t.Helper()
+	files := map[string]string{
+		"package.json":          `{"dependencies":{"astro":"^6.4.2"}}`,
+		"astro-paper.config.ts": `export default {};`,
+		"astro.config.ts": `import { defineConfig } from "astro/config";
+import rehypeCallouts from "rehype-callouts";
+export default defineConfig({
+  markdown: {
+    processor: {},
+    remarkPlugins: [],
+    rehypePlugins: [rehypeCallouts],
+  },
+});`,
+		filepath.Join("src", "pages", "index.astro"): `---
+import config from "@/config";
+const { socials } = config;
+---
+  <main>
+    <section id="hero" class="old">old theme demo</section>
+
+    {
+      featuredPosts.length > 0 && <div />
+    }
+  </main>`,
+		filepath.Join("src", "pages", "rss.xml.ts"):  `export function GET() {}`,
+		filepath.Join("src", "styles", "global.css"): `body { color: black; }`,
+	}
+	for name, content := range files {
+		fullName := filepath.Join(output, name)
+		if err := os.MkdirAll(filepath.Dir(fullName), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(fullName, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func testAstroIssue() models.Issue {

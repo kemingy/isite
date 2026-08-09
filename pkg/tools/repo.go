@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cockroachdb/errors"
 	git "github.com/go-git/go-git/v5"
@@ -37,4 +38,33 @@ func CloneTheme(repo, path string) error {
 		return errors.Wrapf(err, "failed to clone the repo %s", repo)
 	}
 	return nil
+}
+
+// CloneProject clones a repository into path when path is empty. If path
+// already contains a package.json, it is treated as an existing project and
+// left in place so generated sites can be refreshed without losing changes.
+func CloneProject(repo, path string) (bool, error) {
+	packageJSON := filepath.Join(path, "package.json")
+	if _, err := os.Stat(packageJSON); err == nil {
+		return false, nil
+	} else if !os.IsNotExist(err) {
+		return false, errors.Wrapf(err, "failed to stat the project manifest %s", packageJSON)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil && !os.IsNotExist(err) {
+		return false, errors.Wrapf(err, "failed to read the project directory %s", path)
+	}
+	if len(entries) > 0 {
+		return false, errors.Errorf("astro output directory %s is not empty and does not contain package.json", path)
+	}
+
+	fmt.Printf("clone the theme project from %s to %s\n", repo, path)
+	_, err = git.PlainClone(path, false, &git.CloneOptions{
+		URL: fmt.Sprintf("https://github.com/%s", repo),
+	})
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to clone the repo %s", repo)
+	}
+	return true, nil
 }
