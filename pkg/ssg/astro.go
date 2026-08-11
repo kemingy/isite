@@ -62,11 +62,14 @@ func NewAstro(cmd *models.Command, meta *models.Repository) *Astro {
 }
 
 func (a *Astro) Generate(issues []models.Issue, outputDir string) error {
+	if err := validateOutputDir(outputDir); err != nil {
+		return err
+	}
 	path, err := filepath.Abs(outputDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
-	fresh, err := tools.CloneProject(a.ThemeRepo, path)
+	fresh, err := tools.CloneTheme(a.ThemeRepo, path, "package.json")
 	if err != nil {
 		return err
 	}
@@ -234,7 +237,7 @@ func (a *Astro) configureHome(path string) error {
 	rss := ""
 	if a.Feed {
 		rss = `
-      <a target="_blank" href={import.meta.env.BASE_URL.replace(/\/?$/, "/") + "rss.xml"} class="inline-block" aria-label="RSS Feed" title="RSS Feed">
+      <a target="_blank" rel="noopener noreferrer" href={import.meta.env.BASE_URL.replace(/\/?$/, "/") + "rss.xml"} class="inline-block" aria-label="RSS Feed" title="RSS Feed">
         <IconRss width={20} height={20} class="stroke-accent scale-125 stroke-3 rtl:-rotate-90" />
         <span class="sr-only">RSS Feed</span>
       </a>`

@@ -215,6 +215,9 @@ func (w *Website) Retrieve() error {
 }
 
 func (w *Website) Generate(cmd *models.Command) error {
+	if strings.TrimSpace(cmd.Output) == "" {
+		return errors.New("output directory must not be empty")
+	}
 	if cmd.Title == "" {
 		cmd.Title = w.Repo
 	}

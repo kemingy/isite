@@ -20,13 +20,38 @@ func DirExist(path string) (bool, error) {
 	return info.IsDir(), nil
 }
 
-func CloneTheme(repo, path string) error {
+// CloneTheme clones repo into path and reports whether a clone was performed.
+// Existing directories are reused immediately when no markers are supplied.
+// When markers such as package.json are supplied, every marker must exist;
+// otherwise only an empty directory is safe to clone into.
+func CloneTheme(repo, path string, markers ...string) (bool, error) {
 	exist, err := DirExist(path)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if exist {
-		return nil
+		if len(markers) == 0 {
+			return false, nil
+		}
+		allMarkersExist := true
+		for _, marker := range markers {
+			if _, err := os.Stat(filepath.Join(path, marker)); err != nil {
+				if !os.IsNotExist(err) {
+					return false, errors.Wrapf(err, "failed to stat clone marker %s", marker)
+				}
+				allMarkersExist = false
+			}
+		}
+		if allMarkersExist {
+			return false, nil
+		}
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to read the clone directory %s", path)
+		}
+		if len(entries) > 0 {
+			return false, errors.Errorf("clone directory %s is not empty and is missing required markers %v", path, markers)
+		}
 	}
 
 	fmt.Printf("clone the theme from %s to %s\n", repo, path)
@@ -34,35 +59,6 @@ func CloneTheme(repo, path string) error {
 		URL: fmt.Sprintf("https://github.com/%s", repo),
 	},
 	)
-	if err != nil {
-		return errors.Wrapf(err, "failed to clone the repo %s", repo)
-	}
-	return nil
-}
-
-// CloneProject clones a repository into path when path is empty. If path
-// already contains a package.json, it is treated as an existing project and
-// left in place so generated sites can be refreshed without losing changes.
-func CloneProject(repo, path string) (bool, error) {
-	packageJSON := filepath.Join(path, "package.json")
-	if _, err := os.Stat(packageJSON); err == nil {
-		return false, nil
-	} else if !os.IsNotExist(err) {
-		return false, errors.Wrapf(err, "failed to stat the project manifest %s", packageJSON)
-	}
-
-	entries, err := os.ReadDir(path)
-	if err != nil && !os.IsNotExist(err) {
-		return false, errors.Wrapf(err, "failed to read the project directory %s", path)
-	}
-	if len(entries) > 0 {
-		return false, errors.Errorf("astro output directory %s is not empty and does not contain package.json", path)
-	}
-
-	fmt.Printf("clone the theme project from %s to %s\n", repo, path)
-	_, err = git.PlainClone(path, false, &git.CloneOptions{
-		URL: fmt.Sprintf("https://github.com/%s", repo),
-	})
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to clone the repo %s", repo)
 	}

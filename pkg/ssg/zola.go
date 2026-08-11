@@ -133,7 +133,8 @@ func (z *Zola) generateDir(path string) error {
 }
 
 func (z *Zola) downloadTheme(path string) error {
-	return tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName))
+	_, err := tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName))
+	return err
 }
 
 func (z *Zola) generateConfig(path string) error {
@@ -201,6 +202,9 @@ func (z *Zola) generatePost(path string, issues []models.Issue) error {
 }
 
 func (z *Zola) Generate(issues []models.Issue, outputDir string) error {
+	if err := validateOutputDir(outputDir); err != nil {
+		return err
+	}
 	path, err := filepath.Abs(outputDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)

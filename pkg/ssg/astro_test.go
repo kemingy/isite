@@ -76,7 +76,7 @@ func TestAstroGenerate(t *testing.T) {
 		`title: "Front matter: \"safe\""`, `tags: ["astro","Top"]`, "# Markdown body",
 		"## Reactions", "👍 3 · ❤️ 2", "## Comments", "A multiline comment\nwith --- inside.")
 	assertFileContains(t, filepath.Join(output, "src", "pages", "index.astro"),
-		"{config.site.title}", "{config.site.description}", "rss.xml")
+		"{config.site.title}", "{config.site.description}", "rss.xml", `rel="noopener noreferrer"`)
 	assertFileContains(t, filepath.Join(output, "src", "content", "pages", "about.md"),
 		"Notes from issues", "https://github.com/example/notes/issues")
 	assertFileContains(t, filepath.Join(output, "src", "styles", "global.css"), "katex/dist/katex.min.css")
