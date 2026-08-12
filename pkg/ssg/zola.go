@@ -70,8 +70,15 @@ taxonomies = [
 ]
 
 [markdown]
-highlight_code = true
+lazy_async_image = true
+bottom_footnotes = true
+github_alerts = true
+insert_anchor_links = "heading"
 render_emoji = true
+
+[markdown.highlighting]
+light_theme = "github-light"
+dark_theme = "github-dark"
 
 [extra]
 # this only affects the default "even" theme

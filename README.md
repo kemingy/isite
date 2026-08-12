@@ -9,6 +9,11 @@ Convert GitHub **i**ssues to a web**site**.
 - https://github.com/kemingy/withcode ➡️ https://kemingy.github.io/withcode/
 - https://github.com/yihong0618/gitblog ➡️ https://blog.yihong0618.me/
 
+## Installation
+
+- GitHub Releases: download the pre-built binaries from the [releases](https://github.com/kemingy/isite/releases) page.
+- Docker Image: [`docker pull ghcr.io/kemingy/isite`](https://github.com/kemingy/isite/pkgs/container/isite)
+
 ## Usage
 
 ```bash
@@ -44,11 +49,6 @@ isite generate --engine astro \
   --theme my-paper \
   --theme-repo owner/my-astro-paper-fork
 ```
-
-## Installation
-
-- GitHub Releases: download the pre-built binaries from the [releases](https://github.com/kemingy/isite/releases) page.
-- Docker Image: [`docker pull ghcr.io/kemingy/isite`](https://github.com/kemingy/isite/pkgs/container/isite)
 
 ## GitHub Actions
 
@@ -95,8 +95,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       # bump the versions here
-      ISITE_VERSION: v0.2.6
-      ZOLA_VERSION: v0.20.0
+      ISITE_VERSION: v0.3.1
+      ZOLA_VERSION: v0.23.3
       USER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
       # change this to your custom domain name
@@ -108,7 +108,7 @@ jobs:
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
           isite generate --user $USER --repo $REPO
-          gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
+          gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           cd output && zola build --base-url $BASE_URL
       - name: Setup Pages
         uses: actions/configure-pages@v5
