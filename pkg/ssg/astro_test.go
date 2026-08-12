@@ -37,12 +37,12 @@ func TestAstroDeployment(t *testing.T) {
 
 func TestNewAstroUsesAstroPaperByDefault(t *testing.T) {
 	t.Parallel()
-	generator := NewAstro(&models.Command{Title: "Notes"}, nil)
+	generator := NewAstro(&models.Command{Title: testTitle}, nil)
 	if generator.Theme != astroDefaultTheme || generator.ThemeRepo != astroDefaultThemeRepo {
 		t.Fatalf("default theme = %q (%q), want %q (%q)", generator.Theme, generator.ThemeRepo, astroDefaultTheme, astroDefaultThemeRepo)
 	}
 
-	custom := NewAstro(&models.Command{Title: "Notes", Theme: "paper-fork", ThemeRepo: "example/paper-fork"}, nil)
+	custom := NewAstro(&models.Command{Title: testTitle, Theme: "paper-fork", ThemeRepo: "example/paper-fork"}, nil)
 	if custom.Theme != "paper-fork" || custom.ThemeRepo != "example/paper-fork" {
 		t.Fatalf("custom theme flags were not preserved: %#v", custom)
 	}
@@ -53,7 +53,7 @@ func TestAstroGenerate(t *testing.T) {
 	output := t.TempDir()
 	prepareAstroPaper(t, output)
 	cmd := &models.Command{
-		Engine: "astro", Title: `A "quoted" title`, BaseURL: "https://example.github.io/notes/", Feed: true, Katex: true,
+		Engine: engineAstro, Title: `A "quoted" title`, BaseURL: "https://example.github.io/notes/", Feed: true, Katex: true,
 	}
 	meta := &models.Repository{
 		Description: "Notes from issues", FullName: "example/notes", Owner: models.User{Login: "owner"},
@@ -65,11 +65,11 @@ func TestAstroGenerate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertFileContains(t, filepath.Join(output, "astro.config.ts"),
+	assertFileContains(t, filepath.Join(output, astroConfigFile),
 		`base: "/notes"`, "remarkMath", "rehypeKatex")
 	assertFileContains(t, filepath.Join(output, "package.json"),
 		`"astro": "^6.4.2"`, `"katex": "^0.16.22"`, `"rehype-katex": "^7.0.1"`, `"remark-math": "^6.0.0"`)
-	assertFileContains(t, filepath.Join(output, "astro-paper.config.ts"),
+	assertFileContains(t, filepath.Join(output, astroThemeConfigFile),
 		`url: "https://example.github.io/notes/"`, `title: "A \"quoted\" title"`, `author: "owner"`,
 		`https://github.com/example/notes`)
 	assertFileContains(t, filepath.Join(output, astroPostsDir, "issue-42.md"),
@@ -86,19 +86,19 @@ func TestAstroGenerateWithoutOptionalFeatures(t *testing.T) {
 	t.Parallel()
 	output := t.TempDir()
 	prepareAstroPaper(t, output)
-	generator := NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: true, Katex: true}, nil)
+	generator := NewAstro(&models.Command{Title: testTitle, BaseURL: "/", Feed: true, Katex: true}, nil)
 	if err := generator.Generate(nil, output); err != nil {
 		t.Fatal(err)
 	}
 
-	generator = NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: false, Katex: false}, nil)
+	generator = NewAstro(&models.Command{Title: testTitle, BaseURL: "/", Feed: false, Katex: false}, nil)
 	if err := generator.Generate(nil, output); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(output, "src", "pages", "rss.xml.ts")); !os.IsNotExist(err) {
 		t.Fatalf("RSS page should not exist when feed generation is disabled: %v", err)
 	}
-	for _, name := range []string{"package.json", "astro.config.ts", filepath.Join("src", "styles", "global.css")} {
+	for _, name := range []string{"package.json", astroConfigFile, filepath.Join("src", "styles", "global.css")} {
 		content, err := os.ReadFile(filepath.Join(output, name))
 		if err != nil {
 			t.Fatal(err)
@@ -117,7 +117,7 @@ func TestAstroGenerateWithoutOptionalFeatures(t *testing.T) {
 		t.Fatal("home page unexpectedly links to disabled RSS feed")
 	}
 
-	generator = NewAstro(&models.Command{Title: "Notes", BaseURL: "/", Feed: true, Katex: false}, nil)
+	generator = NewAstro(&models.Command{Title: testTitle, BaseURL: "/", Feed: true, Katex: false}, nil)
 	if err := generator.Generate(nil, output); err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestAstroRefreshPreservesNonGeneratedPosts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	generator := NewAstro(&models.Command{Title: "Notes", Feed: true}, nil)
+	generator := NewAstro(&models.Command{Title: testTitle, Feed: true}, nil)
 	if err := generator.Generate([]models.Issue{testAstroIssue()}, output); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestAstroRejectsIncompatibleTheme(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(output, "package.json"), []byte(`{"dependencies":{}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	generator := NewAstro(&models.Command{Title: "Notes", Theme: "other", ThemeRepo: "example/other"}, nil)
+	generator := NewAstro(&models.Command{Title: testTitle, Theme: "other", ThemeRepo: "example/other"}, nil)
 	err := generator.Generate(nil, output)
 	if err == nil || !strings.Contains(err.Error(), "not AstroPaper-compatible") {
 		t.Fatalf("expected a theme compatibility error, got %v", err)
@@ -214,9 +214,9 @@ func TestAstroGeneratedProjectBuilds(t *testing.T) {
 func prepareAstroPaper(t *testing.T, output string) {
 	t.Helper()
 	files := map[string]string{
-		"package.json":          `{"dependencies":{"astro":"^6.4.2"}}`,
-		"astro-paper.config.ts": `export default {};`,
-		"astro.config.ts": `import { defineConfig } from "astro/config";
+		"package.json":       `{"dependencies":{"astro":"^6.4.2"}}`,
+		astroThemeConfigFile: `export default {};`,
+		astroConfigFile: `import { defineConfig } from "astro/config";
 import rehypeCallouts from "rehype-callouts";
 export default defineConfig({
   markdown: {

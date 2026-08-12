@@ -8,6 +8,11 @@ import (
 	"github.com/kemingy/isite/pkg/models"
 )
 
+const (
+	engineZola  = "zola"
+	engineAstro = "astro"
+)
+
 type StaticSiteGenerator interface {
 	Generate(issues []models.Issue, outputDir string) error
 }
@@ -21,9 +26,9 @@ func validateOutputDir(outputDir string) error {
 
 func NewGenerator(cmd *models.Command, meta *models.Repository) StaticSiteGenerator {
 	switch cmd.Engine {
-	case "zola":
+	case engineZola:
 		return NewZola(cmd, meta)
-	case "astro":
+	case engineAstro:
 		return NewAstro(cmd, meta)
 	default:
 		return nil

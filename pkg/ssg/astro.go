@@ -19,6 +19,8 @@ const (
 	astroDefaultTheme     = "astro-paper"
 	astroDefaultThemeRepo = "satnaing/astro-paper"
 	astroPostsDir         = "src/content/posts"
+	astroConfigFile       = "astro.config.ts"
+	astroThemeConfigFile  = "astro-paper.config.ts"
 )
 
 type Astro struct {
@@ -84,7 +86,7 @@ func (a *Astro) Generate(issues []models.Issue, outputDir string) error {
 // Forks can therefore be selected with --theme and --theme-repo just like a
 // Zola theme, while incompatible starters fail with a useful error.
 func (a *Astro) configureAstroPaper(path string, fresh bool) error {
-	required := []string{"astro-paper.config.ts", "astro.config.ts", filepath.Join("src", "pages", "index.astro")}
+	required := []string{astroThemeConfigFile, astroConfigFile, filepath.Join("src", "pages", "index.astro")}
 	for _, name := range required {
 		if _, err := os.Stat(filepath.Join(path, name)); err != nil {
 			return errors.Wrapf(err, "astro theme %q is not AstroPaper-compatible (missing %s)", a.Theme, name)
@@ -100,7 +102,7 @@ func (a *Astro) configureAstroPaper(path string, fresh bool) error {
 		return errors.Wrap(err, "failed to create Astro post directory")
 	}
 
-	if err := os.WriteFile(filepath.Join(path, "astro-paper.config.ts"), []byte(a.themeConfig()), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(path, astroThemeConfigFile), []byte(a.themeConfig()), 0644); err != nil {
 		return errors.Wrap(err, "failed to write AstroPaper config")
 	}
 	if err := a.configureAstro(path); err != nil {
@@ -152,7 +154,7 @@ export default defineAstroPaperConfig({
 }
 
 func (a *Astro) configureAstro(path string) error {
-	name := filepath.Join(path, "astro.config.ts")
+	name := filepath.Join(path, astroConfigFile)
 	content, err := os.ReadFile(name)
 	if err != nil {
 		return errors.Wrap(err, "failed to read Astro config")

@@ -7,11 +7,13 @@ import (
 	"github.com/kemingy/isite/pkg/models"
 )
 
+const testTitle = "Notes"
+
 func TestGeneratorsRejectEmptyOutput(t *testing.T) {
 	t.Parallel()
 	generators := map[string]StaticSiteGenerator{
-		"astro": NewAstro(&models.Command{Title: "Notes"}, nil),
-		"zola":  NewZola(&models.Command{Title: "Notes"}, nil),
+		engineAstro: NewAstro(&models.Command{Title: testTitle}, nil),
+		engineZola:  NewZola(&models.Command{Title: testTitle}, nil),
 	}
 	for name, generator := range generators {
 		t.Run(name, func(t *testing.T) {
