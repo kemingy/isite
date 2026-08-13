@@ -43,7 +43,7 @@ jobs:
       - name: Test
         run: make test
 
-      - name: Zola build Test
+      - name: Zola build test
         env:
           GH_TOKEN: ${{ github.token }}
           ZOLA_VERSION: v0.23.3
@@ -51,3 +51,10 @@ jobs:
           gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           ./bin/isite generate --repo withcode --user kemingy --label "python"
           cd output && zola build
+
+      - name: Astro build test
+        working-directory: ./output
+        run: |
+          isite generate --engine astro --repo withcode --user kemingy
+          npm install --prefix output
+          npm run build --prefix output
