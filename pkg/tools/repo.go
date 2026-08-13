@@ -33,6 +33,11 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 	}
 	if exist {
 		if len(markers) == 0 {
+			if revision != "" {
+				if err := checkoutExistingThemeRevision(path, revision); err != nil {
+					return false, err
+				}
+			}
 			return false, nil
 		}
 		allMarkersExist := true
@@ -45,6 +50,11 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 			}
 		}
 		if allMarkersExist {
+			if revision != "" {
+				if err := checkoutExistingThemeRevision(path, revision); err != nil {
+					return false, err
+				}
+			}
 			return false, nil
 		}
 		entries, err := os.ReadDir(path)
@@ -64,19 +74,34 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 		return false, errors.Wrapf(err, "failed to clone the repo %s", repo)
 	}
 	if revision != "" {
-		resolved, err := resolveThemeRevision(cloned, revision)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to resolve theme revision %q", revision)
-		}
-		worktree, err := cloned.Worktree()
-		if err != nil {
-			return false, errors.Wrap(err, "failed to access cloned theme worktree")
-		}
-		if err := worktree.Checkout(&git.CheckoutOptions{Hash: *resolved}); err != nil {
-			return false, errors.Wrapf(err, "failed to checkout theme revision %q", revision)
+		if err := checkoutThemeRevision(cloned, revision); err != nil {
+			return false, err
 		}
 	}
 	return true, nil
+}
+
+func checkoutExistingThemeRevision(path, revision string) error {
+	existing, err := git.PlainOpen(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open existing theme repository %s", path)
+	}
+	return checkoutThemeRevision(existing, revision)
+}
+
+func checkoutThemeRevision(repo *git.Repository, revision string) error {
+	resolved, err := resolveThemeRevision(repo, revision)
+	if err != nil {
+		return errors.Wrapf(err, "failed to resolve theme revision %q", revision)
+	}
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return errors.Wrap(err, "failed to access theme worktree")
+	}
+	if err := worktree.Checkout(&git.CheckoutOptions{Hash: *resolved}); err != nil {
+		return errors.Wrapf(err, "failed to checkout theme revision %q", revision)
+	}
+	return nil
 }
 
 func resolveThemeRevision(repo *git.Repository, revision string) (*plumbing.Hash, error) {

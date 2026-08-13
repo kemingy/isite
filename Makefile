@@ -37,6 +37,9 @@ clean:
 	@-rm -rf $(OUTPUT_DIR)
 	@-rm -rf output
 
+test:
+	@go test ./...
+
 update:
 	@go get -u ./...
 	@go mod tidy

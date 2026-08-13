@@ -41,6 +41,9 @@ jobs:
           version: v2.12
 
       - name: Test
+        run: make test
+
+      - name: Zola build Test
         env:
           GH_TOKEN: ${{ github.token }}
           ZOLA_VERSION: v0.23.3
