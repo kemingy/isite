@@ -49,12 +49,14 @@ jobs:
           ZOLA_VERSION: v0.23.3
         run: |
           gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
-          ./bin/isite generate --repo withcode --user kemingy --label "python"
+          ./bin/isite generate --engine zola --repo withcode --user kemingy --label "python"
           cd output && zola build
+          rm -rf output
 
       - name: Astro build test
-        working-directory: ./output
         run: |
-          isite generate --engine astro --repo withcode --user kemingy
+          ./bin/isite generate --engine astro --repo withcode --user kemingy --label "python"
+          cd output
           npm install --prefix output
           npm run build --prefix output
+          rm -rf output
