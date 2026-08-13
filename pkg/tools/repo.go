@@ -64,7 +64,7 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 		return false, errors.Wrapf(err, "failed to clone the repo %s", repo)
 	}
 	if revision != "" {
-		resolved, err := cloned.ResolveRevision(plumbing.Revision(revision))
+		resolved, err := resolveThemeRevision(cloned, revision)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to resolve theme revision %q", revision)
 		}
@@ -77,4 +77,15 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func resolveThemeRevision(repo *git.Repository, revision string) (*plumbing.Hash, error) {
+	resolved, err := repo.ResolveRevision(plumbing.Revision(revision))
+	if err == nil {
+		return resolved, nil
+	}
+	// Clone fetches non-default branches as refs/remotes/origin/<branch>.
+	// go-git's shorthand resolver does not search remote-tracking refs, so
+	// try the equivalent remote ref before reporting the original failure.
+	return repo.ResolveRevision(plumbing.Revision("refs/remotes/origin/" + revision))
 }
