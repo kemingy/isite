@@ -29,7 +29,9 @@ After generating the Markdown based documents, you can build the website with th
 - [x] [Astro](https://docs.astro.build/)
   - default theme: [AstroPaper](https://github.com/satnaing/astro-paper)
   - clones the theme project and generates standard blog posts with tags, comments, reactions, and optional RSS/KaTeX support
-- [ ] [hugo](https://github.com/gohugoio/hugo)
+- [x] [Hugo](https://github.com/gohugoio/hugo)
+  - default theme: [PaperMod](https://github.com/adityatelange/hugo-PaperMod)
+  - clones the upstream theme and generates standard Markdown posts with tags, reactions, comments, and per-post OG images
 
 ### Astro
 
@@ -154,6 +156,24 @@ isite generate --theme <theme_name> --theme-repo <user/repo>
 ```
 
 For Astro, use an AstroPaper-compatible repository and add `--engine astro`.
+
+For Hugo, use a PaperMod-compatible repository and add `--engine hugo`. PaperMod renders the generated reaction and comment sections as ordinary Markdown, so no isite-specific theme fork is required. Hugo's `comments` parameter remains disabled because PaperMod's built-in comments hook is for external providers, not the GitHub issue comments already embedded in each post.
+
+```bash
+isite generate --engine hugo --base-url https://example.github.io/repository
+cd output
+hugo --minify
+```
+
+The static site is written to `output/public`. Issues are written to `content/posts/issue-<number>.md`.
+
+To preview locally, override the deployment URL because `--base-url` is intended for the published site:
+
+```bash
+hugo server --baseURL http://localhost:1313/ --appendPort=false
+```
+
+Then open [http://localhost:1313/](http://localhost:1313/).
 
 ### Backup Markdown files to the Repo
 
