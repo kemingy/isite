@@ -50,7 +50,7 @@ jobs:
         run: |
           gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
           ./bin/isite generate --engine zola --repo withcode --user kemingy --label "python"
-          cd output && zola build
+          (cd output && zola build)
           rm -rf output
 
       - name: Astro build test
