@@ -25,7 +25,7 @@ func init() {
 	generateCmd.Flags().StringVar(&cmd.State, "state", "open", "filter the github issue by the state, default is `open`, choose from [open, closed, all]")
 	generateCmd.Flags().StringSliceVar(&cmd.Label, "label", []string{}, "filter the github issue by the labels")
 
-	generateCmd.Flags().StringVar(&cmd.Engine, "engine", "zola", "the static site generator engine, default is `zola`, choose from [zola, astro, hugo]")
+	generateCmd.Flags().StringVar(&cmd.Engine, "engine", "hugo", "the static site generator engine, default is `hugo`, choose from [hugo, zola, astro]")
 	generateCmd.Flags().StringVar(&cmd.Output, "output", "output", "the output dir for the generated files")
 	generateCmd.Flags().StringVar(&cmd.Title, "title", "", "the title of the static site, if not set, will use the repository name")
 	generateCmd.Flags().StringVar(&cmd.Theme, "theme", "", "the theme name of the static site")

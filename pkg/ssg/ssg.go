@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	engineZola  = "zola"
-	engineAstro = "astro"
-	engineHugo  = "hugo"
+	engineZola         = "zola"
+	engineAstro        = "astro"
+	engineHugo         = "hugo"
+	templateTOMLEscape = "toml_escape"
 )
 
 type StaticSiteGenerator interface {

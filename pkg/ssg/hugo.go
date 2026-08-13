@@ -16,17 +16,18 @@ import (
 )
 
 const (
-	hugoDefaultTheme     = "PaperMod"
-	hugoDefaultThemeRepo = "adityatelange/hugo-PaperMod"
-	hugoContentDir       = "content/posts"
-	hugoAboutFile        = "content/about.md"
-	hugoSearchFile       = "content/search.md"
-	hugoOGDir            = "static/images/og"
+	hugoDefaultTheme      = "PaperMod"
+	hugoDefaultThemeRepo  = "adityatelange/hugo-PaperMod"
+	hugoContentDir        = "content/posts"
+	hugoAboutFile         = "content/about.md"
+	hugoSearchFile        = "content/search.md"
+	hugoOGDir             = "static/images/og"
+	hugoEngagementPartial = "layouts/_partials/extend_post_content.html"
+	hugoStylesheet        = "assets/css/extended/isite.css"
 )
 
-// Hugo and PaperMod both render the Markdown body as-is. Keeping reactions
-// and comments in the body makes them work with upstream PaperMod and with
-// compatible forks, without requiring a fork just for an isite data model.
+// Hugo and PaperMod render the Markdown body as-is. Engagement data is kept
+// in front matter so the generated partial can render it outside the ToC.
 const hugoPostTemplate = `+++
 title = {{ toml_escape .Title }}
 date = {{ toml_escape .CreatedAt }}
@@ -34,8 +35,29 @@ lastmod = {{ toml_escape .UpdatedAt }}
 author = {{ toml_escape .User.Login }}
 tags = [{{ range .Labels }}{{ toml_escape .Name }}, {{ end }}]
 canonicalURL = {{ toml_escape .URL }}
+issueURL = {{ toml_escape .URL }}
 showToc = true
 tocOpen = false
+
+[params]
+commentCount = {{ len .Comments }}
+[params.reactions]
+thumbs_up = {{ .Reactions.ThumbUp }}
+thumbs_down = {{ .Reactions.ThumbDown }}
+laugh = {{ .Reactions.Laugh }}
+hooray = {{ .Reactions.Hooray }}
+confused = {{ .Reactions.Confused }}
+heart = {{ .Reactions.Heart }}
+rocket = {{ .Reactions.Rocket }}
+eyes = {{ .Reactions.Eyes }}
+{{ range .Comments }}
+[[params.issueComments]]
+author = {{ toml_escape .User.Login }}
+avatar = {{ toml_escape .User.AvatarURL }}
+url = {{ toml_escape .HTMLURL }}
+updated = {{ toml_escape .UpdatedAt }}
+body = {{ toml_escape .Body }}
+{{ end }}
 
 [cover]
 image = "/images/og/issue-{{ .Number }}.svg"
@@ -46,23 +68,10 @@ hidden = true
 {{ if .URL }}> Originally published as [GitHub issue #{{ .Number }}]({{ .URL }}).
 
 {{ end }}{{ .Body }}
-{{ with hugo_reactions .Reactions }}
-## Reactions
-
-{{ . }}
-{{ end }}{{ if .Comments }}
-## Comments
-{{ range .Comments }}
-### {{ .User.Login }}
-
-{{ if .HTMLURL }}[View comment]({{ .HTMLURL }}) · {{ .UpdatedAt }}
-
-{{ end }}{{ .Body }}
-{{ end }}{{ end }}
 `
 
 const hugoConfigTemplate = `baseURL = {{ toml_escape .BaseURL }}
-languageCode = "en-us"
+locale = "en-us"
 title = {{ toml_escape .Title }}
 theme = {{ toml_escape .ThemeName }}
 pagination.pagerSize = 10
@@ -71,6 +80,7 @@ enableEmoji = true
 enableGitInfo = false
 
 [params]
+env = "production"
 description = {{ toml_escape .Description }}
 defaultTheme = "auto"
 ShowReadingTime = true
@@ -104,18 +114,22 @@ weight = 40
 [taxonomies]
 tag = "tags"
 
+[markup.goldmark.renderer]
+unsafe = true
+
 [outputs]
 home = ["HTML", "JSON"{{ if .Feed }}, "RSS"{{ end }}]
 `
 
 type Hugo struct {
-	Title       string
-	BaseURL     string
-	ThemeName   string
-	ThemeRepo   string
-	Description string
-	Feed        bool
-	Katex       bool
+	Title         string
+	BaseURL       string
+	ThemeName     string
+	ThemeRepo     string
+	ThemeRevision string
+	Description   string
+	Feed          bool
+	Katex         bool
 }
 
 func NewHugo(cmd *models.Command, meta *models.Repository) *Hugo {
@@ -127,7 +141,11 @@ func NewHugo(cmd *models.Command, meta *models.Repository) *Hugo {
 	if meta != nil && meta.Description != "" {
 		description = meta.Description
 	}
-	return &Hugo{Title: cmd.Title, BaseURL: cmd.BaseURL, ThemeName: theme, ThemeRepo: themeRepo, Description: description, Feed: cmd.Feed, Katex: cmd.Katex}
+	themeRevision := ""
+	if cmd.ThemeRevision != nil {
+		themeRevision = *cmd.ThemeRevision
+	}
+	return &Hugo{Title: cmd.Title, BaseURL: cmd.BaseURL, ThemeName: theme, ThemeRepo: themeRepo, ThemeRevision: themeRevision, Description: description, Feed: cmd.Feed, Katex: cmd.Katex}
 }
 
 func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
@@ -138,12 +156,12 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
-	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir} {
+	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir, filepath.Dir(hugoEngagementPartial), filepath.Dir(hugoStylesheet)} {
 		if err := os.MkdirAll(filepath.Join(path, dir), 0755); err != nil {
 			return errors.Wrapf(err, "failed to create Hugo %s directory", dir)
 		}
 	}
-	if _, err := tools.CloneTheme(h.ThemeRepo, filepath.Join(path, "themes", h.ThemeName), "theme.toml"); err != nil {
+	if _, err := tools.CloneTheme(h.ThemeRepo, filepath.Join(path, "themes", h.ThemeName), h.ThemeRevision, "theme.toml"); err != nil {
 		return err
 	}
 	if err := h.removeLegacyZolaPosts(path); err != nil {
@@ -153,6 +171,12 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 		return err
 	}
 	if err := h.writePages(path); err != nil {
+		return err
+	}
+	if err := h.writeEngagementPartial(path); err != nil {
+		return err
+	}
+	if err := h.writeStylesheet(path); err != nil {
 		return err
 	}
 	return h.writePosts(path, issues)
@@ -172,7 +196,7 @@ func (h *Hugo) removeLegacyZolaPosts(path string) error {
 }
 
 func (h *Hugo) writeConfig(path string) error {
-	t, err := template.New("hugo-config").Funcs(template.FuncMap{"toml_escape": tools.EscapeTOMLString}).Parse(hugoConfigTemplate)
+	t, err := template.New("hugo-config").Funcs(template.FuncMap{templateTOMLEscape: tools.EscapeTOMLString}).Parse(hugoConfigTemplate)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse Hugo config template")
 	}
@@ -187,7 +211,7 @@ func (h *Hugo) writeConfig(path string) error {
 }
 
 func (h *Hugo) writePosts(path string, issues []models.Issue) error {
-	t, err := template.New("hugo-post").Funcs(template.FuncMap{"toml_escape": tools.EscapeTOMLString, "hugo_reactions": hugoReactionText}).Parse(hugoPostTemplate)
+	t, err := template.New("hugo-post").Funcs(template.FuncMap{templateTOMLEscape: tools.EscapeTOMLString}).Parse(hugoPostTemplate)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse Hugo post template")
 	}
@@ -221,15 +245,17 @@ func (h *Hugo) writeOGImage(path string, issue models.Issue) error {
 			fmt.Fprintf(&titleSVG, `<tspan x="108" dy="72">%s</tspan>`, line)
 		}
 	}
-	fontFamily := `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Noto Sans CJK TC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif`
+	// Use portable system fallbacks. SVGs do not embed fonts, so the viewer
+	// selects the first installed font that supports the title's characters.
+	fontFamily := `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "DejaVu Sans", "Liberation Sans", "FreeSans", "Noto Sans CJK SC", "Noto Sans CJK TC", "Noto Sans CJK JP", "Noto Sans CJK KR", "PingFang SC", "Microsoft YaHei", "WenQuanYi Zen Hei", Arial, sans-serif`
 	content := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title subtitle">
 <title id="title">%s</title>
 <desc id="subtitle">%s</desc>
 <rect width="1200" height="630" fill="#1d1f21"/>
 <rect x="54" y="54" width="12" height="522" rx="6" fill="#ffcc66"/>
-<text x="108" y="145" fill="#ffcc66" font-family="%s" font-size="30" font-weight="600">%s</text>
-<text fill="#ffffff" font-family="%s" font-size="62" font-weight="700">%s</text>
-<text x="108" y="540" fill="#b8b8b8" font-family="%s" font-size="26">GitHub issue #%d</text>
+<text x="108" y="145" fill="#ffcc66" font-family='%s' font-size="30" font-weight="600">%s</text>
+<text fill="#ffffff" font-family='%s' font-size="62" font-weight="700">%s</text>
+<text x="108" y="540" fill="#b8b8b8" font-family='%s' font-size="26">GitHub issue #%d</text>
 </svg>
 `, title, title, fontFamily, siteTitle, fontFamily, titleSVG.String(), fontFamily, issue.Number)
 	name := filepath.Join(path, hugoOGDir, fmt.Sprintf("issue-%d.svg", issue.Number))
@@ -253,7 +279,6 @@ func ogTitleLines(title string, maxRunes int) []string {
 		if len([]rune(word)) > maxRunes {
 			if line != "" {
 				lines = append(lines, line)
-				line = ""
 			}
 			runes := []rune(word)
 			for len(runes) > maxRunes {
@@ -304,20 +329,94 @@ summary = "Search posts"
 	return nil
 }
 
-func hugoReactionText(reactions models.Reactions) string {
-	items := []struct {
-		emoji string
-		count int
-	}{
-		{"👍", reactions.ThumbUp}, {"👎", reactions.ThumbDown}, {"😄", reactions.Laugh},
-		{"🎉", reactions.Hooray}, {"😕", reactions.Confused}, {"❤️", reactions.Heart},
-		{"🚀", reactions.Rocket}, {"👀", reactions.Eyes},
+const hugoEngagementTemplate = `{{- with .Params.reactions }}
+{{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
+<div class="isite-reactions" aria-label="Reactions">
+  {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
+  {{- if gt .thumbs_down 0 }}<span>👎 {{ .thumbs_down }}</span>{{ end }}
+  {{- if gt .laugh 0 }}<span>😄 {{ .laugh }}</span>{{ end }}
+  {{- if gt .hooray 0 }}<span>🎉 {{ .hooray }}</span>{{ end }}
+  {{- if gt .confused 0 }}<span>😕 {{ .confused }}</span>{{ end }}
+  {{- if gt .heart 0 }}<span>❤️ {{ .heart }}</span>{{ end }}
+  {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
+  {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
+</div>
+{{- end }}
+{{- end }}
+{{- with .Params.issueComments }}
+<section class="isite-comments" aria-labelledby="comments-heading">
+  <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
+  <p class="isite-comments-note">Read-only mirror of the comments on
+    {{ if $.Params.issueURL }} <a href="{{ $.Params.issueURL }}">this GitHub issue</a>{{ else }} the GitHub issue{{ end }}.
+  </p>
+  {{- range . }}
+  <article class="isite-comment">
+    <header class="isite-comment-header">
+      {{- if .url }}<a href="{{ .url }}">{{ end }}
+      {{- if .avatar }}<img src="{{ .avatar }}" alt="" width="40" height="40">{{ end }}
+      <div><strong>{{ .author }}</strong><span>{{ .updated }}</span></div>
+      {{- if .url }}</a>{{ end }}
+    </header>
+    <div class="isite-comment-body md-content">{{ .body | markdownify }}</div>
+  </article>
+  {{- end }}
+</section>
+{{- end }}
+`
+
+const hugoStylesheetTemplate = `.isite-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1.5rem 0;
+}
+.isite-reactions span {
+  border: 1px solid var(--tertiary);
+  border-radius: 999px;
+  padding: .25rem .65rem;
+  color: var(--secondary);
+}
+.isite-comments {
+  border-top: 1px solid var(--tertiary);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+}
+.isite-comments h2 { font-size: 1.35rem; }
+.isite-comments h2 span { color: var(--secondary); font-size: .9em; }
+.isite-comments-note { color: var(--secondary); font-size: .9em; }
+.isite-comment {
+  border: 1px solid var(--tertiary);
+  border-radius: .5rem;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+.isite-comment-header {
+  align-items: center;
+  background: var(--code-bg);
+  display: flex;
+  gap: .75rem;
+  padding: .75rem 1rem;
+}
+.isite-comment-header a { align-items: center; color: inherit; display: flex; gap: .75rem; width: 100%; }
+.isite-comment-header img { border-radius: 50%; }
+.isite-comment-header div { display: flex; flex-direction: column; }
+.isite-comment-header span { color: var(--secondary); font-size: .85em; }
+.isite-comment-body { padding: 1rem; }
+.isite-comment-body > :first-child { margin-top: 0; }
+.isite-comment-body > :last-child { margin-bottom: 0; }
+`
+
+func (h *Hugo) writeStylesheet(path string) error {
+	if err := os.WriteFile(filepath.Join(path, hugoStylesheet), []byte(hugoStylesheetTemplate), 0644); err != nil {
+		return errors.Wrap(err, "failed to write Hugo stylesheet")
 	}
-	parts := make([]string, 0, len(items))
-	for _, item := range items {
-		if item.count > 0 {
-			parts = append(parts, fmt.Sprintf("%s %d", item.emoji, item.count))
-		}
+	return nil
+}
+
+func (h *Hugo) writeEngagementPartial(path string) error {
+	name := filepath.Join(path, hugoEngagementPartial)
+	if err := os.WriteFile(name, []byte(hugoEngagementTemplate), 0644); err != nil {
+		return errors.Wrap(err, "failed to write Hugo engagement partial")
 	}
-	return strings.Join(parts, " · ")
+	return nil
 }
