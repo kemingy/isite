@@ -7,6 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func DirExist(path string) (bool, error) {
@@ -20,11 +21,12 @@ func DirExist(path string) (bool, error) {
 	return info.IsDir(), nil
 }
 
-// CloneTheme clones repo into path and reports whether a clone was performed.
+// CloneTheme clones repo into path at revision and reports whether a clone was performed.
 // Existing directories are reused immediately when no markers are supplied.
 // When markers such as package.json are supplied, every marker must exist;
 // otherwise only an empty directory is safe to clone into.
-func CloneTheme(repo, path string, markers ...string) (bool, error) {
+// Revision may be empty to use the repository's default branch.
+func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 	exist, err := DirExist(path)
 	if err != nil {
 		return false, err
@@ -54,13 +56,25 @@ func CloneTheme(repo, path string, markers ...string) (bool, error) {
 		}
 	}
 
-	fmt.Printf("clone the theme from %s to %s\n", repo, path)
-	_, err = git.PlainClone(path, false, &git.CloneOptions{
+	fmt.Printf("clone the theme(revision:%s) from %s to %s\n", revision, repo, path)
+	cloned, err := git.PlainClone(path, false, &git.CloneOptions{
 		URL: fmt.Sprintf("https://github.com/%s", repo),
-	},
-	)
+	})
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to clone the repo %s", repo)
+	}
+	if revision != "" {
+		resolved, err := cloned.ResolveRevision(plumbing.Revision(revision))
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to resolve theme revision %q", revision)
+		}
+		worktree, err := cloned.Worktree()
+		if err != nil {
+			return false, errors.Wrap(err, "failed to access cloned theme worktree")
+		}
+		if err := worktree.Checkout(&git.CheckoutOptions{Hash: *resolved}); err != nil {
+			return false, errors.Wrapf(err, "failed to checkout theme revision %q", revision)
+		}
 	}
 	return true, nil
 }

@@ -6,12 +6,13 @@ type Command struct {
 	State   string
 	Label   []string
 	// config
-	Engine    string
-	Output    string
-	Title     string
-	Theme     string
-	ThemeRepo string
-	BaseURL   string
-	Feed      bool
-	Katex     bool
+	Engine        string
+	Output        string
+	Title         string
+	Theme         string
+	ThemeRepo     string
+	ThemeRevision *string
+	BaseURL       string
+	Feed          bool
+	Katex         bool
 }

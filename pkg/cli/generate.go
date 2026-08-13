@@ -16,6 +16,7 @@ var generateCmd = &cobra.Command{
 	RunE:  generate,
 }
 var cmd = &models.Command{}
+var themeRevision string
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
@@ -29,12 +30,18 @@ func init() {
 	generateCmd.Flags().StringVar(&cmd.Title, "title", "", "the title of the static site, if not set, will use the repository name")
 	generateCmd.Flags().StringVar(&cmd.Theme, "theme", "", "the theme name of the static site")
 	generateCmd.Flags().StringVar(&cmd.ThemeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")
+	generateCmd.Flags().StringVar(&themeRevision, "theme-revision", "", "the theme revision to checkout (branch, tag, or commit)")
 	generateCmd.Flags().StringVar(&cmd.BaseURL, "base-url", "/", "the base url of the static site")
 	generateCmd.Flags().BoolVar(&cmd.Feed, "feed", true, "generate feed or not")
 	generateCmd.Flags().BoolVar(&cmd.Katex, "katex", false, "enable katex support or not")
 }
 
-func generate(_ *cobra.Command, _ []string) error {
+func generate(c *cobra.Command, _ []string) error {
+	if c.Flags().Changed("theme-revision") {
+		cmd.ThemeRevision = &themeRevision
+	} else {
+		cmd.ThemeRevision = nil
+	}
 	if (cmd.Theme == "" && cmd.ThemeRepo != "") || (cmd.Theme != "" && cmd.ThemeRepo == "") {
 		return errors.New("`theme` and `theme-repo` should be set together")
 	}
