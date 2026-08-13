@@ -37,7 +37,7 @@ func TestHugoGenerate(t *testing.T) {
 		Body: "# Markdown body", CreatedAt: "2026-01-02T03:04:05Z", UpdatedAt: "2026-01-03T03:04:05Z",
 		User: models.User{Login: "author"}, Labels: []models.Label{{Name: "hugo"}},
 		Reactions: models.Reactions{ThumbUp: 3, Heart: 2},
-		Comments:  []models.Comment{{User: models.User{Login: "reader"}, HTMLURL: "https://example.com/comment", UpdatedAt: "2026-01-04", Body: "> A quoted comment"}},
+		Comments:  []models.Comment{{User: models.User{Login: "reader"}, HTMLURL: "https://example.com/comment", UpdatedAt: "2026-01-04", Body: "> A quoted comment\n\n```toml\ntitle = \"quote\"\n```"}},
 	}
 	if err := generator.Generate([]models.Issue{issue}, output); err != nil {
 		t.Fatal(err)
@@ -50,17 +50,21 @@ func TestHugoGenerate(t *testing.T) {
 			t.Errorf("Hugo config does not contain %q:\n%s", text, config)
 		}
 	}
-	for _, text := range []string{"title = '''A quoted title'''", "tags = ['''hugo''', ]", "image = \"/images/og/issue-42.svg\"", "commentCount = 1", "# Markdown body"} {
+	for _, text := range []string{"title = '''A quoted title'''", "tags = ['''hugo''']", "image = \"/images/og/issue-42.svg\"", "commentCount = 1", "# Markdown body"} {
 		if !strings.Contains(post, text) {
 			t.Errorf("Hugo post does not contain %q:\n%s", text, post)
 		}
 	}
-	assertFileContains(t, filepath.Join(output, hugoEngagementPartial), "isite-reactions", "isite-comments", "Read-only mirror", "this GitHub issue", "markdownify", "isite-comment-body md-content", "href=\"{{ .url }}\"")
+	assertFileContains(t, filepath.Join(output, hugoEngagementPartial), "isite-reactions", "isite-comments", "Read-only mirror", "this GitHub issue", "markdownify", "isite-comment-body md-content", "site.Data.comments", ".Body")
+	commentsJSON := readHugoFile(t, filepath.Join(output, hugoCommentsDataDir, "issue-42.json"))
+	if !strings.Contains(commentsJSON, "A quoted comment") || !strings.Contains(commentsJSON, `\n\n`) {
+		t.Errorf("comments JSON does not preserve Markdown safely: %s", commentsJSON)
+	}
 	if strings.Contains(post, "## Comments") || strings.Contains(post, "## Reactions") {
 		t.Fatal("reactions and comments should not be part of the post content")
 	}
-	if _, err := os.Stat(filepath.Join(output, "content", "comments")); !os.IsNotExist(err) {
-		t.Fatalf("separate comments directory should not be generated: %v", err)
+	if _, err := os.Stat(filepath.Join(output, hugoCommentsDataDir, "issue-42.json")); err != nil {
+		t.Fatalf("comments data was not generated: %v", err)
 	}
 	if !strings.Contains(ogImage, "<svg") || !strings.Contains(ogImage, "A quoted title") {
 		t.Errorf("generated OG image does not contain the issue title:\n%s", ogImage)
@@ -123,7 +127,7 @@ func TestHugoGeneratedProjectBuilds(t *testing.T) {
 	if err := generator.Generate(issues, output); err != nil {
 		t.Fatal(err)
 	}
-	command := exec.Command("hugo", "--source", output, "--destination", filepath.Join(output, "public"), "--minify")
+	command := exec.Command("hugo", "--source", output, "--destination", filepath.Join(output, "public"))
 	if result, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("hugo build failed: %v\n%s", err, result)
 	}

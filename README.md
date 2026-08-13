@@ -41,7 +41,7 @@ explicitly select another supported engine.
 ```bash
 isite generate --base-url https://example.github.io/repository
 cd output
-hugo --minify
+hugo
 ```
 
 PaperMod only emits Open Graph, Twitter Card, and schema metadata in production. isite sets
@@ -54,6 +54,8 @@ Reactions and comments are rendered inline by a Hugo partial after the Markdown 
 Comments use GitHub-like cards with avatars, author metadata, Markdown content, and links back to GitHub. No theme
 fork is required. PaperMod's `comments` parameter stays disabled because its built-in hook is for external providers.
 The generated config enables Goldmark's raw HTML renderer because GitHub comments may contain HTML formatting.
+Comment data is stored as JSON under `data/comments/` rather than in post front matter, keeping arbitrary GitHub
+Markdown from breaking Hugo's TOML parser.
 
 The static site is written to `output/public`. Issues are written to `content/posts/issue-<number>.md`, and OG images
 are written to `static/images/og/issue-<number>.svg`.
@@ -148,7 +150,7 @@ jobs:
           HUGO_ASSET="hugo_extended_${HUGO_VERSION#v}_linux-amd64.tar.gz"
           gh release download $HUGO_VERSION --repo gohugoio/hugo \
             -p "$HUGO_ASSET" -O- | tar -xz -C /usr/local/bin hugo
-          hugo --minify --source output --destination output/public --baseURL $BASE_URL
+          hugo --source output --destination public --baseURL $BASE_URL
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

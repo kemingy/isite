@@ -2,6 +2,7 @@ package ssg
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html"
 	"os"
@@ -24,6 +25,7 @@ const (
 	hugoOGDir             = "static/images/og"
 	hugoEngagementPartial = "layouts/_partials/extend_post_content.html"
 	hugoStylesheet        = "assets/css/extended/isite.css"
+	hugoCommentsDataDir   = "data/comments"
 )
 
 // Hugo and PaperMod render the Markdown body as-is. Engagement data is kept
@@ -33,7 +35,7 @@ title = {{ toml_escape .Title }}
 date = {{ toml_escape .CreatedAt }}
 lastmod = {{ toml_escape .UpdatedAt }}
 author = {{ toml_escape .User.Login }}
-tags = [{{ range .Labels }}{{ toml_escape .Name }}, {{ end }}]
+tags = {{ hugo_tags .Labels }}
 canonicalURL = {{ toml_escape .URL }}
 issueURL = {{ toml_escape .URL }}
 showToc = true
@@ -41,6 +43,7 @@ tocOpen = false
 
 [params]
 commentCount = {{ len .Comments }}
+commentsKey = "issue-{{ .Number }}"
 [params.reactions]
 thumbs_up = {{ .Reactions.ThumbUp }}
 thumbs_down = {{ .Reactions.ThumbDown }}
@@ -50,14 +53,6 @@ confused = {{ .Reactions.Confused }}
 heart = {{ .Reactions.Heart }}
 rocket = {{ .Reactions.Rocket }}
 eyes = {{ .Reactions.Eyes }}
-{{ range .Comments }}
-[[params.issueComments]]
-author = {{ toml_escape .User.Login }}
-avatar = {{ toml_escape .User.AvatarURL }}
-url = {{ toml_escape .HTMLURL }}
-updated = {{ toml_escape .UpdatedAt }}
-body = {{ toml_escape .Body }}
-{{ end }}
 
 [cover]
 image = "/images/og/issue-{{ .Number }}.svg"
@@ -156,7 +151,7 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
-	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir, filepath.Dir(hugoEngagementPartial), filepath.Dir(hugoStylesheet)} {
+	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir, filepath.Dir(hugoEngagementPartial), filepath.Dir(hugoStylesheet), hugoCommentsDataDir} {
 		if err := os.MkdirAll(filepath.Join(path, dir), 0755); err != nil {
 			return errors.Wrapf(err, "failed to create Hugo %s directory", dir)
 		}
@@ -211,7 +206,10 @@ func (h *Hugo) writeConfig(path string) error {
 }
 
 func (h *Hugo) writePosts(path string, issues []models.Issue) error {
-	t, err := template.New("hugo-post").Funcs(template.FuncMap{templateTOMLEscape: tools.EscapeTOMLString}).Parse(hugoPostTemplate)
+	t, err := template.New("hugo-post").Funcs(template.FuncMap{
+		templateTOMLEscape: tools.EscapeTOMLString,
+		"hugo_tags":        hugoTags,
+	}).Parse(hugoPostTemplate)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse Hugo post template")
 	}
@@ -228,8 +226,19 @@ func (h *Hugo) writePosts(path string, issues []models.Issue) error {
 		if err := h.writeOGImage(path, issue); err != nil {
 			return err
 		}
+		if err := h.writeCommentsData(path, issue); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func hugoTags(labels []models.Label) string {
+	values := make([]string, 0, len(labels))
+	for _, label := range labels {
+		values = append(values, tools.EscapeTOMLString(label.Name))
+	}
+	return "[" + strings.Join(values, ", ") + "]"
 }
 
 func (h *Hugo) writeOGImage(path string, issue models.Issue) error {
@@ -343,7 +352,8 @@ const hugoEngagementTemplate = `{{- with .Params.reactions }}
 </div>
 {{- end }}
 {{- end }}
-{{- with .Params.issueComments }}
+{{- with .Params.commentsKey }}
+{{- with (index site.Data.comments .) }}
 <section class="isite-comments" aria-labelledby="comments-heading">
   <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
   <p class="isite-comments-note">Read-only mirror of the comments on
@@ -352,15 +362,16 @@ const hugoEngagementTemplate = `{{- with .Params.reactions }}
   {{- range . }}
   <article class="isite-comment">
     <header class="isite-comment-header">
-      {{- if .url }}<a href="{{ .url }}">{{ end }}
-      {{- if .avatar }}<img src="{{ .avatar }}" alt="" width="40" height="40">{{ end }}
-      <div><strong>{{ .author }}</strong><span>{{ .updated }}</span></div>
-      {{- if .url }}</a>{{ end }}
+      {{- if .URL }}<a href="{{ .URL }}">{{ end }}
+      {{- if .Avatar }}<img src="{{ .Avatar }}" alt="" width="40" height="40">{{ end }}
+      <div><strong>{{ .Author }}</strong><span>{{ .Updated }}</span></div>
+      {{- if .URL }}</a>{{ end }}
     </header>
-    <div class="isite-comment-body md-content">{{ .body | markdownify }}</div>
+    <div class="isite-comment-body md-content">{{ .Body | markdownify }}</div>
   </article>
   {{- end }}
 </section>
+{{- end }}
 {{- end }}
 `
 
@@ -409,6 +420,33 @@ const hugoStylesheetTemplate = `.isite-reactions {
 func (h *Hugo) writeStylesheet(path string) error {
 	if err := os.WriteFile(filepath.Join(path, hugoStylesheet), []byte(hugoStylesheetTemplate), 0644); err != nil {
 		return errors.Wrap(err, "failed to write Hugo stylesheet")
+	}
+	return nil
+}
+
+type hugoComment struct {
+	Author  string `json:"author"`
+	Avatar  string `json:"avatar"`
+	URL     string `json:"url"`
+	Updated string `json:"updated"`
+	Body    string `json:"body"`
+}
+
+func (h *Hugo) writeCommentsData(path string, issue models.Issue) error {
+	comments := make([]hugoComment, 0, len(issue.Comments))
+	for _, comment := range issue.Comments {
+		comments = append(comments, hugoComment{
+			Author: comment.User.Login, Avatar: comment.User.AvatarURL,
+			URL: comment.HTMLURL, Updated: comment.UpdatedAt, Body: comment.Body,
+		})
+	}
+	content, err := json.Marshal(comments)
+	if err != nil {
+		return errors.Wrapf(err, "failed to encode Hugo comments for issue #%d", issue.Number)
+	}
+	name := filepath.Join(path, hugoCommentsDataDir, fmt.Sprintf("issue-%d.json", issue.Number))
+	if err := os.WriteFile(name, content, 0644); err != nil {
+		return errors.Wrapf(err, "failed to write Hugo comments for issue #%d", issue.Number)
 	}
 	return nil
 }
