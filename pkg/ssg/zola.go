@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	zolaDefaultTheme     = "even"
-	zolaDefaultThemeRepo = "kemingy/even"
+	zolaDefaultTheme         = "even"
+	zolaDefaultThemeRepo     = "kemingy/even"
+	zolaDefaultThemeRevision = "terav2"
 )
 
 const zolaPostTemplate = `
@@ -90,22 +91,30 @@ katex_enable = {{ .Katex }}
 `
 
 type Zola struct {
-	Title       string
-	BaseURL     string
-	ThemeName   string
-	ThemeRepo   string
-	Description string
-	Feed        bool
-	Katex       bool
-	Taxonomies  []string
+	Title         string
+	BaseURL       string
+	ThemeName     string
+	ThemeRepo     string
+	ThemeRevision string
+	Description   string
+	Feed          bool
+	Katex         bool
+	Taxonomies    []string
 }
 
 func NewZola(cmd *models.Command, meta *models.Repository) *Zola {
 	theme := cmd.Theme
 	themeRepo := cmd.ThemeRepo
+	themeRevision := ""
+	if cmd.ThemeRevision != nil {
+		themeRevision = *cmd.ThemeRevision
+	}
 	if theme == "" && themeRepo == "" {
 		theme = zolaDefaultTheme
 		themeRepo = zolaDefaultThemeRepo
+		if cmd.ThemeRevision == nil {
+			themeRevision = zolaDefaultThemeRevision
+		}
 	}
 	description := cmd.Title
 	if meta != nil && len(meta.Description) > 0 {
@@ -113,14 +122,15 @@ func NewZola(cmd *models.Command, meta *models.Repository) *Zola {
 	}
 
 	return &Zola{
-		Title:       cmd.Title,
-		BaseURL:     cmd.BaseURL,
-		ThemeName:   theme,
-		ThemeRepo:   themeRepo,
-		Description: description,
-		Feed:        cmd.Feed,
-		Katex:       cmd.Katex,
-		Taxonomies:  []string{"tags"},
+		Title:         cmd.Title,
+		BaseURL:       cmd.BaseURL,
+		ThemeName:     theme,
+		ThemeRepo:     themeRepo,
+		ThemeRevision: themeRevision,
+		Description:   description,
+		Feed:          cmd.Feed,
+		Katex:         cmd.Katex,
+		Taxonomies:    []string{"tags"},
 	}
 }
 
@@ -140,7 +150,7 @@ func (z *Zola) generateDir(path string) error {
 }
 
 func (z *Zola) downloadTheme(path string) error {
-	_, err := tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName))
+	_, err := tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName), z.ThemeRevision)
 	return err
 }
 

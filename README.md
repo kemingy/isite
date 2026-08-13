@@ -44,10 +44,13 @@ The static site is written to `output/dist`. Astro uses the upstream AstroPaper 
 
 Like the Zola engine, Astro accepts `--theme` and `--theme-repo`. The selected repository must be an AstroPaper-compatible theme or fork because Astro does not define a common theme interface. The output directory may be empty or an existing compatible project; subsequent runs refresh only `issue-*.md` and preserve other posts.
 
+Use `--theme-revision` to pin the theme checkout to a branch, tag, or commit. The built-in Zola theme Even defaults to `terav2`. AstroPaper and custom themes use the repository's default branch unless a revision is supplied.
+
 ```bash
 isite generate --engine astro \
   --theme my-paper \
-  --theme-repo owner/my-astro-paper-fork
+  --theme-repo owner/my-astro-paper-fork \
+  --theme-revision v2.0.0
 ```
 
 ## GitHub Actions

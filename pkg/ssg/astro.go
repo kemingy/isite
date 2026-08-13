@@ -24,20 +24,25 @@ const (
 )
 
 type Astro struct {
-	Title       string
-	BaseURL     string
-	Description string
-	Author      string
-	Repository  string
-	Feed        bool
-	Katex       bool
-	Theme       string
-	ThemeRepo   string
+	Title         string
+	BaseURL       string
+	Description   string
+	Author        string
+	Repository    string
+	Feed          bool
+	Katex         bool
+	Theme         string
+	ThemeRepo     string
+	ThemeRevision string
 }
 
 func NewAstro(cmd *models.Command, meta *models.Repository) *Astro {
 	theme := cmd.Theme
 	themeRepo := cmd.ThemeRepo
+	themeRevision := ""
+	if cmd.ThemeRevision != nil {
+		themeRevision = *cmd.ThemeRevision
+	}
 	if theme == "" && themeRepo == "" {
 		theme = astroDefaultTheme
 		themeRepo = astroDefaultThemeRepo
@@ -60,6 +65,7 @@ func NewAstro(cmd *models.Command, meta *models.Repository) *Astro {
 		Title: cmd.Title, BaseURL: cmd.BaseURL, Description: description,
 		Author: author, Repository: repository, Feed: cmd.Feed, Katex: cmd.Katex,
 		Theme: theme, ThemeRepo: themeRepo,
+		ThemeRevision: themeRevision,
 	}
 }
 
@@ -71,7 +77,7 @@ func (a *Astro) Generate(issues []models.Issue, outputDir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
-	fresh, err := tools.CloneTheme(a.ThemeRepo, path, "package.json")
+	fresh, err := tools.CloneTheme(a.ThemeRepo, path, a.ThemeRevision, "package.json")
 	if err != nil {
 		return err
 	}

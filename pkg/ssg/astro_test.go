@@ -38,13 +38,26 @@ func TestAstroDeployment(t *testing.T) {
 func TestNewAstroUsesAstroPaperByDefault(t *testing.T) {
 	t.Parallel()
 	generator := NewAstro(&models.Command{Title: testTitle}, nil)
-	if generator.Theme != astroDefaultTheme || generator.ThemeRepo != astroDefaultThemeRepo {
-		t.Fatalf("default theme = %q (%q), want %q (%q)", generator.Theme, generator.ThemeRepo, astroDefaultTheme, astroDefaultThemeRepo)
+	theme := "paper-fork"
+	themeRepo := "example/paper-fork"
+	if generator.Theme != astroDefaultTheme || generator.ThemeRepo != astroDefaultThemeRepo || generator.ThemeRevision != "" {
+		t.Fatalf("default theme = %q (%q @ %q), want %q (%q @ empty)", generator.Theme, generator.ThemeRepo, generator.ThemeRevision, astroDefaultTheme, astroDefaultThemeRepo)
 	}
 
-	custom := NewAstro(&models.Command{Title: testTitle, Theme: "paper-fork", ThemeRepo: "example/paper-fork"}, nil)
-	if custom.Theme != "paper-fork" || custom.ThemeRepo != "example/paper-fork" {
+	custom := NewAstro(&models.Command{Title: testTitle, Theme: theme, ThemeRepo: themeRepo}, nil)
+	if custom.Theme != theme || custom.ThemeRepo != themeRepo {
 		t.Fatalf("custom theme flags were not preserved: %#v", custom)
+	}
+	if custom.ThemeRevision != "" {
+		t.Fatalf("custom theme without a revision = %q, want empty", custom.ThemeRevision)
+	}
+
+	emptyRevision := ""
+	explicitEmpty := NewAstro(&models.Command{
+		Title: testTitle, Theme: theme, ThemeRepo: themeRepo, ThemeRevision: &emptyRevision,
+	}, nil)
+	if explicitEmpty.ThemeRevision != "" {
+		t.Fatalf("explicit empty theme revision = %q, want empty", explicitEmpty.ThemeRevision)
 	}
 }
 
