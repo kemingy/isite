@@ -132,7 +132,6 @@ The workflow above builds with Zola. To deploy the Astro engine instead, use the
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- | tar -xz -C /tmp && mv /tmp/isite /usr/local/bin
           isite generate --engine astro --user $USER --repo $REPO --base-url $BASE_URL
       - name: Build Astro site
-        working-directory: ./output
         run: |
           npm install --prefix output
           npm run build --prefix output

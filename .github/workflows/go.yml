@@ -54,9 +54,10 @@ jobs:
           rm -rf output
 
       - name: Astro build test
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           ./bin/isite generate --engine astro --repo withcode --user kemingy --label "python"
-          cd output
           npm install --prefix output
           npm run build --prefix output
           rm -rf output
