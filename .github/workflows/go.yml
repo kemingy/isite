@@ -68,6 +68,7 @@ jobs:
           HUGO_VERSION: v0.165.0
         run: |
           ./bin/isite generate --repo withcode --user kemingy --label "python"
+          HUGO_ASSET="hugo_extended_${HUGO_VERSION#v}_linux-amd64.tar.gz"
           gh release download $HUGO_VERSION --repo gohugoio/hugo \
-            -p 'hugo_extended_*_linux-amd64.tar.gz' -O- | tar -xz -C /usr/local/bin hugo
+            -p "$HUGO_ASSET" -O- | tar -xz -C /usr/local/bin hugo
           hugo --source output --destination output/public --minify

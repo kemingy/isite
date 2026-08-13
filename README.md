@@ -145,8 +145,9 @@ jobs:
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- \
             | tar -xz -C /usr/local/bin isite
           isite generate --user $USER --repo $REPO --base-url $BASE_URL
+          HUGO_ASSET="hugo_extended_${HUGO_VERSION#v}_linux-amd64.tar.gz"
           gh release download $HUGO_VERSION --repo gohugoio/hugo \
-            -p 'hugo_extended_*_linux-amd64.tar.gz' -O- | tar -xz -C /usr/local/bin hugo
+            -p "$HUGO_ASSET" -O- | tar -xz -C /usr/local/bin hugo
           hugo --minify --source output --destination output/public --baseURL $BASE_URL
       - name: Setup Pages
         uses: actions/configure-pages@v5
