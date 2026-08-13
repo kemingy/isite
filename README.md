@@ -49,7 +49,7 @@ Use `--theme-revision` to pin the theme checkout to a branch, tag, or commit. Th
 ```bash
 isite generate --engine astro \
   --theme my-paper \
-  --theme-repo owner/my-astro-paper-fork
+  --theme-repo owner/my-astro-paper-fork \
   --theme-revision v2.0.0
 ```
 
