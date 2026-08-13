@@ -159,9 +159,6 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 	if _, err := tools.CloneTheme(h.ThemeRepo, filepath.Join(path, "themes", h.ThemeName), h.ThemeRevision, "theme.toml"); err != nil {
 		return err
 	}
-	if err := h.removeLegacyZolaPosts(path); err != nil {
-		return err
-	}
 	if err := h.writeConfig(path); err != nil {
 		return err
 	}
@@ -175,19 +172,6 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 		return err
 	}
 	return h.writePosts(path, issues)
-}
-
-func (h *Hugo) removeLegacyZolaPosts(path string) error {
-	matches, err := filepath.Glob(filepath.Join(path, "content", "issue-*.md"))
-	if err != nil {
-		return errors.Wrap(err, "failed to find legacy Zola posts")
-	}
-	for _, name := range matches {
-		if err := os.Remove(name); err != nil {
-			return errors.Wrapf(err, "failed to remove legacy Zola post %s", name)
-		}
-	}
-	return nil
 }
 
 func (h *Hugo) writeConfig(path string) error {

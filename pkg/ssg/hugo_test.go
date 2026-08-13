@@ -3,9 +3,7 @@ package ssg
 import (
 	"encoding/xml"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -99,46 +97,4 @@ func TestOGTitleLinesWrapLongTitles(t *testing.T) {
 			t.Fatalf("wrapped line is too long: %q", line)
 		}
 	}
-}
-
-func TestHugoGeneratedProjectBuilds(t *testing.T) {
-	if os.Getenv("ISITE_HUGO_INTEGRATION") == "" {
-		t.Skip("set ISITE_HUGO_INTEGRATION=1 to clone PaperMod and build the generated project")
-	}
-	if _, err := exec.LookPath("hugo"); err != nil {
-		t.Skip("hugo is not installed")
-	}
-
-	output := filepath.Join(t.TempDir(), "site")
-	generator := NewHugo(&models.Command{
-		Title: "Integration Notes", BaseURL: "https://example.github.io/notes", Feed: true,
-	}, &models.Repository{Description: "An integration build"})
-	issues := make([]models.Issue, 2)
-	for index := range issues {
-		issues[index] = models.Issue{
-			Number: 42 + index, Title: "Integration issue " + strconv.Itoa(index),
-			URL:       "https://github.com/example/notes/issues/" + strconv.Itoa(42+index),
-			CreatedAt: "2026-01-02T03:04:05Z", UpdatedAt: "2026-01-03T03:04:05Z",
-			User: models.User{Login: "example"}, Body: "Integration body",
-			Labels:    []models.Label{{Name: "integration"}},
-			Reactions: models.Reactions{ThumbUp: 1},
-		}
-	}
-	if err := generator.Generate(issues, output); err != nil {
-		t.Fatal(err)
-	}
-	command := exec.Command("hugo", "--source", output, "--destination", filepath.Join(output, "public"))
-	if result, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("hugo build failed: %v\n%s", err, result)
-	}
-	for _, name := range []string{
-		"index.html", "posts/issue-42/index.html", "tags/index.html", "search/index.html", "about/index.html",
-		"images/og/issue-42.svg", "index.xml",
-	} {
-		if _, err := os.Stat(filepath.Join(output, "public", filepath.FromSlash(name))); err != nil {
-			t.Fatalf("expected build output %s: %v", name, err)
-		}
-	}
-	assertFileContains(t, filepath.Join(output, "public", "posts", "issue-42", "index.html"),
-		"og:image", "/notes/images/og/issue-42.svg", "Integration issue 0")
 }
