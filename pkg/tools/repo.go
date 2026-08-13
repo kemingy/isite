@@ -84,7 +84,7 @@ func CloneTheme(repo, path, revision string, markers ...string) (bool, error) {
 func checkoutExistingThemeRevision(path, revision string) error {
 	existing, err := git.PlainOpen(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open existing theme repository %s", path)
+		return errors.Wrapf(err, "failed to open existing theme repository %s for revision %s", path, revision)
 	}
 	return checkoutThemeRevision(existing, revision)
 }
