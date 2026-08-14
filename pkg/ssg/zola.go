@@ -44,7 +44,7 @@ eyes = {{ .Reactions.Eyes }}
 url = "{{ .HTMLURL }}"
 author_name = "{{ .User.Login }}"
 author_avatar = "{{ .User.AvatarURL }}"
-content = {{ toml_escape .Body }}
+content = {{ toml_escape (render_comment .Body) }}
 updated_at = "{{ .UpdatedAt }}"
 {{ end }}
 +++
@@ -196,6 +196,7 @@ func (z *Zola) generateIndex(path string) error {
 func (z *Zola) generatePost(path string, issues []models.Issue) error {
 	funcMap := template.FuncMap{
 		templateTOMLEscape: tools.EscapeTOMLString,
+		"render_comment":   renderAndSanitizeCommentBody,
 	}
 	post, err := template.New("post").Funcs(funcMap).Parse(zolaPostTemplate)
 	if err != nil {

@@ -53,10 +53,10 @@ func TestHugoGenerate(t *testing.T) {
 			t.Errorf("Hugo post does not contain %q:\n%s", text, post)
 		}
 	}
-	assertFileContains(t, filepath.Join(output, hugoEngagementPartial), "isite-reactions", "isite-comments", "Read-only mirror", "this GitHub issue", "markdownify", "isite-comment-body md-content", "site.Data.comments", ".Body")
+	assertFileContains(t, filepath.Join(output, hugoEngagementPartial), "isite-reactions", "isite-comments", "Read-only mirror", "this GitHub issue", "safeHTML", "isite-comment-body md-content", "site.Data.comments", ".body")
 	commentsJSON := readHugoFile(t, filepath.Join(output, hugoCommentsDataDir, "issue-42.json"))
-	if !strings.Contains(commentsJSON, "A quoted comment") || !strings.Contains(commentsJSON, `\n\n`) {
-		t.Errorf("comments JSON does not preserve Markdown safely: %s", commentsJSON)
+	if !strings.Contains(commentsJSON, "A quoted comment") || !strings.Contains(commentsJSON, `\u003cblockquote\u003e`) {
+		t.Errorf("comments JSON does not contain sanitized HTML: %s", commentsJSON)
 	}
 	if strings.Contains(post, "## Comments") || strings.Contains(post, "## Reactions") {
 		t.Fatal("reactions and comments should not be part of the post content")

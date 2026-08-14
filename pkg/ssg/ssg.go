@@ -1,9 +1,14 @@
 package ssg
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	goldmarkHTML "github.com/yuin/goldmark/renderer/html"
 
 	"github.com/kemingy/isite/pkg/models"
 )
@@ -14,6 +19,33 @@ const (
 	engineHugo         = "hugo"
 	templateTOMLEscape = "toml_escape"
 )
+
+var commentMarkdown = goldmark.New(
+	goldmark.WithExtensions(extension.GFM),
+	goldmark.WithRendererOptions(goldmarkHTML.WithUnsafe()),
+)
+
+var commentHTMLPolicy = newCommentHTMLPolicy()
+
+func newCommentHTMLPolicy() *bluemonday.Policy {
+	policy := bluemonday.UGCPolicy()
+	policy.RequireNoFollowOnLinks(true)
+	policy.AddTargetBlankToFullyQualifiedLinks(true)
+	policy.AllowStandardURLs()
+	policy.AllowAttrs("style").OnElements("p", "div", "h1", "h2", "h3", "h4", "h5", "h6")
+	policy.AllowStyles("text-align").MatchingEnum("left", "center", "right", "justify").OnElements(
+		"p", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+	)
+	return policy
+}
+
+func renderAndSanitizeCommentBody(body string) string {
+	var rendered bytes.Buffer
+	if err := commentMarkdown.Convert([]byte(body), &rendered); err != nil {
+		return ""
+	}
+	return string(commentHTMLPolicy.SanitizeBytes(rendered.Bytes()))
+}
 
 type StaticSiteGenerator interface {
 	Generate(issues []models.Issue, outputDir string) error

@@ -109,6 +109,7 @@ weight = 40
 [taxonomies]
 tag = "tags"
 
+# Raw HTML in issue bodies is rendered by Hugo. Comments are rendered and sanitized in Go.
 [markup.goldmark.renderer]
 unsafe = true
 
@@ -155,12 +156,12 @@ const hugoEngagementTemplate = `{{- with .Params.reactions }}
   {{- range . }}
   <article class="isite-comment">
     <header class="isite-comment-header">
-      {{- if .URL }}<a href="{{ .URL }}">{{ end }}
-      {{- if .Avatar }}<img src="{{ .Avatar }}" alt="" width="40" height="40">{{ end }}
-      <div><strong>{{ .Author }}</strong><span>{{ .Updated }}</span></div>
-      {{- if .URL }}</a>{{ end }}
+      {{- if .url }}<a href="{{ .url }}">{{ end }}
+      {{- if .avatar }}<img src="{{ .avatar }}" alt="" width="40" height="40">{{ end }}
+      <div><strong>{{ .author }}</strong><span>{{ .updated }}</span></div>
+      {{- if .url }}</a>{{ end }}
     </header>
-    <div class="isite-comment-body md-content">{{ .Body | markdownify }}</div>
+    <div class="isite-comment-body md-content">{{ .body | safeHTML }}</div>
   </article>
   {{- end }}
 </section>
@@ -447,7 +448,7 @@ func (h *Hugo) writeCommentsData(path string, issue models.Issue) error {
 	for _, comment := range issue.Comments {
 		comments = append(comments, hugoComment{
 			Author: comment.User.Login, Avatar: comment.User.AvatarURL,
-			URL: comment.HTMLURL, Updated: comment.UpdatedAt, Body: comment.Body,
+			URL: comment.HTMLURL, Updated: comment.UpdatedAt, Body: renderAndSanitizeCommentBody(comment.Body),
 		})
 	}
 	content, err := json.Marshal(comments)

@@ -413,7 +413,7 @@ func (a *Astro) postContent(issue models.Issue) string {
 			if comment.HTMLURL != "" {
 				fmt.Fprintf(&body, "[View comment](%s) · %s\n\n", comment.HTMLURL, comment.UpdatedAt)
 			}
-			body.WriteString(comment.Body)
+			body.WriteString(renderAndSanitizeCommentBody(comment.Body))
 			body.WriteString("\n")
 		}
 	}
