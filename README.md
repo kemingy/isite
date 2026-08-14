@@ -4,6 +4,11 @@
 
 Convert GitHub **i**ssues to a web**site**.
 
+## Features
+
+- use GitHub issues as the source of truth
+- generate posts from the issues with issue comments and reactions
+
 ## Examples
 
 - https://github.com/kemingy/withcode ➡️ https://kemingy.github.io/withcode/
@@ -27,12 +32,10 @@ explicitly select another supported engine.
 
 - [x] [Hugo](https://github.com/gohugoio/hugo) (default)
   - default theme: [PaperMod](https://github.com/adityatelange/hugo-PaperMod)
-  - generates Markdown posts, tags, reactions, comments, and per-post OG images
 - [x] [zola](https://github.com/getzola/zola)
   - default theme: [Even](https://github.com/kemingy/even), modified to support comments and reactions
 - [x] [Astro](https://docs.astro.build/)
   - default theme: [AstroPaper](https://github.com/satnaing/astro-paper)
-  - generates Markdown posts with tags, comments, reactions, RSS, and optional KaTeX
 
 ### Hugo (default)
 
@@ -115,7 +118,9 @@ jobs:
       BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Generate markdown
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- \
@@ -126,14 +131,14 @@ jobs:
             -p "$HUGO_ASSET" -O- | tar -xz -C /usr/local/bin hugo
           hugo --source output --destination public --baseURL $BASE_URL
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'output/public'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 ```
 
 ### Deploy with Astro
@@ -149,7 +154,7 @@ Replace the Hugo generation/build step with:
           npm install --prefix output
           npm run build --prefix output
       - name: Upload Astro artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'output/dist'
 ```
@@ -168,7 +173,7 @@ Replace the Hugo generation/build step with:
           isite generate --engine zola --user $USER --repo $REPO --base-url $BASE_URL
           (cd output && zola build --base-url $BASE_URL)
       - name: Upload Zola artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'output/public'
 ```
