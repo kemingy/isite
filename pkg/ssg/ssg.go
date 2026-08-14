@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	engineZola  = "zola"
-	engineAstro = "astro"
+	engineZola         = "zola"
+	engineAstro        = "astro"
+	engineHugo         = "hugo"
+	templateTOMLEscape = "toml_escape"
 )
 
 type StaticSiteGenerator interface {
@@ -30,6 +32,8 @@ func NewGenerator(cmd *models.Command, meta *models.Repository) StaticSiteGenera
 		return NewZola(cmd, meta)
 	case engineAstro:
 		return NewAstro(cmd, meta)
+	case engineHugo:
+		return NewHugo(cmd, meta)
 	default:
 		return nil
 	}

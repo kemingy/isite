@@ -156,7 +156,7 @@ func (z *Zola) downloadTheme(path string) error {
 
 func (z *Zola) generateConfig(path string) error {
 	funcMap := template.FuncMap{
-		"toml_escape": tools.EscapeTOMLString,
+		templateTOMLEscape: tools.EscapeTOMLString,
 	}
 	config, err := template.New("config").Funcs(funcMap).Parse(zolaConfigTemplate)
 	if err != nil {
@@ -195,7 +195,7 @@ func (z *Zola) generateIndex(path string) error {
 
 func (z *Zola) generatePost(path string, issues []models.Issue) error {
 	funcMap := template.FuncMap{
-		"toml_escape": tools.EscapeTOMLString,
+		templateTOMLEscape: tools.EscapeTOMLString,
 	}
 	post, err := template.New("post").Funcs(funcMap).Parse(zolaPostTemplate)
 	if err != nil {

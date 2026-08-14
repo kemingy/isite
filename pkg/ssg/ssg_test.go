@@ -14,6 +14,7 @@ func TestGeneratorsRejectEmptyOutput(t *testing.T) {
 	generators := map[string]StaticSiteGenerator{
 		engineAstro: NewAstro(&models.Command{Title: testTitle}, nil),
 		engineZola:  NewZola(&models.Command{Title: testTitle}, nil),
+		engineHugo:  NewHugo(&models.Command{Title: testTitle}, nil),
 	}
 	for name, generator := range generators {
 		t.Run(name, func(t *testing.T) {

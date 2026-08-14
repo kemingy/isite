@@ -48,7 +48,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ZOLA_VERSION: v0.23.3
         run: |
-          gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /tmp && mv /tmp/zola /usr/local/bin
+          gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /usr/local/bin zola
           ./bin/isite generate --engine zola --repo withcode --user kemingy --label "python"
           (cd output && zola build)
           rm -rf output
@@ -61,3 +61,14 @@ jobs:
           npm install --prefix output
           npm run build --prefix output
           rm -rf output
+
+      - name: Hugo build test
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HUGO_VERSION: v0.165.0
+        run: |
+          ./bin/isite generate --repo withcode --user kemingy --label "python"
+          HUGO_ASSET="hugo_extended_${HUGO_VERSION#v}_linux-amd64.tar.gz"
+          gh release download $HUGO_VERSION --repo gohugoio/hugo \
+            -p "$HUGO_ASSET" -O- | tar -xz -C /usr/local/bin hugo
+          hugo --source output --destination public
