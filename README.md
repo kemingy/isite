@@ -27,14 +27,12 @@ explicitly select another supported engine.
 
 - [x] [Hugo](https://github.com/gohugoio/hugo) (default)
   - default theme: [PaperMod](https://github.com/adityatelange/hugo-PaperMod)
-  - clones the upstream theme and generates standard Markdown posts with tags, reactions, comments, and per-post OG
-    images
+  - generates Markdown posts, tags, reactions, comments, and per-post OG images
 - [x] [zola](https://github.com/getzola/zola)
   - default theme: [Even](https://github.com/kemingy/even), modified to support comments and reactions
 - [x] [Astro](https://docs.astro.build/)
   - default theme: [AstroPaper](https://github.com/satnaing/astro-paper)
-  - clones the theme project and generates standard blog posts with tags, comments, reactions, and optional
-    RSS/KaTeX support
+  - generates Markdown posts with tags, comments, reactions, RSS, and optional KaTeX
 
 ### Hugo (default)
 
@@ -44,21 +42,13 @@ cd output
 hugo
 ```
 
-PaperMod only emits Open Graph, Twitter Card, and schema metadata in production. isite sets
-`params.env = "production"` in the generated `hugo.toml`, so each post's generated OG image is included
-automatically in production builds. For local preview, use
-`hugo server --baseURL http://localhost:1313/ --appendPort=false`;
-social crawler metadata is intentionally disabled by Hugo in that development environment.
+OG metadata and images are enabled in production. Preview locally with:
 
-Reactions and comments are rendered inline by a Hugo partial after the Markdown content, so they do not enter the ToC.
-Comments use GitHub-like cards with avatars, author metadata, Markdown content, and links back to GitHub. No theme
-fork is required. PaperMod's `comments` parameter stays disabled because its built-in hook is for external providers.
-The generated config enables Goldmark's raw HTML renderer because GitHub comments may contain HTML formatting.
-Comment data is stored as JSON under `data/comments/` rather than in post front matter, keeping arbitrary GitHub
-Markdown from breaking Hugo's TOML parser.
+```bash
+hugo server --baseURL http://localhost:1313/ --appendPort=false
+```
 
-The static site is written to `output/public`. Issues are written to `content/posts/issue-<number>.md`, and OG images
-are written to `static/images/og/issue-<number>.svg`.
+The output is `output/public`; posts are in `content/posts/`.
 
 ### Astro
 
@@ -69,23 +59,7 @@ npm install
 npm run build
 ```
 
-The static site is written to `output/dist`. Astro uses the upstream AstroPaper project rather than an isite-specific
-page implementation. Issues are written to `src/content/posts/issue-<number>.md`; reactions and comments are ordinary
-Markdown sections, so they remain portable theme content.
-
-Like the Zola engine, Astro accepts `--theme` and `--theme-repo`. The selected repository must be an
-AstroPaper-compatible theme or fork because Astro does not define a common theme interface. The output directory may
-be empty or an existing compatible project; subsequent runs refresh only `issue-*.md` and preserve other posts.
-
-Use `--theme-revision` to pin the theme checkout to a branch, tag, or commit. The built-in Zola theme Even defaults to
-`terav2`. AstroPaper and custom themes use the repository's default branch unless a revision is supplied.
-
-```bash
-isite generate --engine astro \
-  --theme my-paper \
-  --theme-repo owner/my-astro-paper-fork \
-  --theme-revision v2.0.0
-```
+The output is `output/dist`. Astro themes must be AstroPaper-compatible.
 
 ## GitHub Actions
 
@@ -162,23 +136,41 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-The workflow above builds with Hugo. To deploy the Astro engine instead, use these generation/build steps and upload
-`output/dist`:
+### Deploy with Astro
+
+Replace the Hugo generation/build step with:
 
 ```yaml
-      - name: Generate Astro project
+      - name: Generate Astro site
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- \
             | tar -xz -C /usr/local/bin isite
           isite generate --engine astro --user $USER --repo $REPO --base-url $BASE_URL
-      - name: Build Astro site
-        run: |
           npm install --prefix output
           npm run build --prefix output
-      - name: Upload artifact
+      - name: Upload Astro artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: 'output/dist'
+```
+
+### Deploy with Zola
+
+```yaml
+      - name: Generate Zola site
+        env:
+          ZOLA_VERSION: v0.23.3
+        run: |
+          gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- \
+            | tar -xz -C /usr/local/bin isite
+          gh release download $ZOLA_VERSION --repo getzola/zola \
+            -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /usr/local/bin zola
+          isite generate --engine zola --user $USER --repo $REPO --base-url $BASE_URL
+          (cd output && zola build --base-url $BASE_URL)
+      - name: Upload Zola artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'output/public'
 ```
 
 ## Customization
@@ -193,7 +185,7 @@ Change the `BASE_URL` in the GitHub Actions workflow to your custom domain name.
 isite generate --theme <theme_name> --theme-repo <user/repo>
 ```
 
-For Astro, use an AstroPaper-compatible repository and add `--engine astro`.
+For Astro, use an AstroPaper-compatible repository with `--engine astro`.
 
 ### Zola
 
@@ -202,9 +194,6 @@ isite generate --engine zola --base-url https://example.github.io/repository
 cd output
 zola build --base-url https://example.github.io/repository
 ```
-
-The Zola site is written to `output/public`. Zola uses the Even theme, which is modified to render GitHub issue
-comments and reactions.
 
 ### Backup Markdown files to the Repo
 

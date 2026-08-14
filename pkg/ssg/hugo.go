@@ -116,6 +116,100 @@ unsafe = true
 home = ["HTML", "JSON"{{ if .Feed }}, "RSS"{{ end }}]
 `
 
+const hugoAboutPageTemplate = `+++
+title = "About"
+description = %s
++++
+
+%s
+`
+
+const hugoSearchPageTemplate = `+++
+title = "Search"
+layout = "search"
+summary = "Search posts"
++++
+`
+
+const hugoEngagementTemplate = `{{- with .Params.reactions }}
+{{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
+<div class="isite-reactions" aria-label="Reactions">
+  {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
+  {{- if gt .thumbs_down 0 }}<span>👎 {{ .thumbs_down }}</span>{{ end }}
+  {{- if gt .laugh 0 }}<span>😄 {{ .laugh }}</span>{{ end }}
+  {{- if gt .hooray 0 }}<span>🎉 {{ .hooray }}</span>{{ end }}
+  {{- if gt .confused 0 }}<span>😕 {{ .confused }}</span>{{ end }}
+  {{- if gt .heart 0 }}<span>❤️ {{ .heart }}</span>{{ end }}
+  {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
+  {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
+</div>
+{{- end }}
+{{- end }}
+{{- with .Params.commentsKey }}
+{{- with (index site.Data.comments .) }}
+<section class="isite-comments" aria-labelledby="comments-heading">
+  <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
+  <p class="isite-comments-note">Read-only mirror of the comments on
+    {{ if $.Params.issueURL }} <a href="{{ $.Params.issueURL }}">this GitHub issue</a>{{ else }} the GitHub issue{{ end }}.
+  </p>
+  {{- range . }}
+  <article class="isite-comment">
+    <header class="isite-comment-header">
+      {{- if .URL }}<a href="{{ .URL }}">{{ end }}
+      {{- if .Avatar }}<img src="{{ .Avatar }}" alt="" width="40" height="40">{{ end }}
+      <div><strong>{{ .Author }}</strong><span>{{ .Updated }}</span></div>
+      {{- if .URL }}</a>{{ end }}
+    </header>
+    <div class="isite-comment-body md-content">{{ .Body | markdownify }}</div>
+  </article>
+  {{- end }}
+</section>
+{{- end }}
+{{- end }}
+`
+
+const hugoStylesheetTemplate = `.isite-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1.5rem 0;
+}
+.isite-reactions span {
+  border: 1px solid var(--tertiary);
+  border-radius: 999px;
+  padding: .25rem .65rem;
+  color: var(--secondary);
+}
+.isite-comments {
+  border-top: 1px solid var(--tertiary);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+}
+.isite-comments h2 { font-size: 1.35rem; }
+.isite-comments h2 span { color: var(--secondary); font-size: .9em; }
+.isite-comments-note { color: var(--secondary); font-size: .9em; }
+.isite-comment {
+  border: 1px solid var(--tertiary);
+  border-radius: .5rem;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+.isite-comment-header {
+  align-items: center;
+  background: var(--code-bg);
+  display: flex;
+  gap: .75rem;
+  padding: .75rem 1rem;
+}
+.isite-comment-header a { align-items: center; color: inherit; display: flex; gap: .75rem; width: 100%; }
+.isite-comment-header img { border-radius: 50%; }
+.isite-comment-header div { display: flex; flex-direction: column; }
+.isite-comment-header span { color: var(--secondary); font-size: .85em; }
+.isite-comment-body { padding: 1rem; }
+.isite-comment-body > :first-child { margin-top: 0; }
+.isite-comment-body > :last-child { margin-bottom: 0; }
+`
+
 type Hugo struct {
 	Title         string
 	BaseURL       string
@@ -140,7 +234,16 @@ func NewHugo(cmd *models.Command, meta *models.Repository) *Hugo {
 	if cmd.ThemeRevision != nil {
 		themeRevision = *cmd.ThemeRevision
 	}
-	return &Hugo{Title: cmd.Title, BaseURL: cmd.BaseURL, ThemeName: theme, ThemeRepo: themeRepo, ThemeRevision: themeRevision, Description: description, Feed: cmd.Feed, Katex: cmd.Katex}
+	return &Hugo{
+		Title:         cmd.Title,
+		BaseURL:       cmd.BaseURL,
+		ThemeName:     theme,
+		ThemeRepo:     themeRepo,
+		ThemeRevision: themeRevision,
+		Description:   description,
+		Feed:          cmd.Feed,
+		Katex:         cmd.Katex,
+	}
 }
 
 func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
@@ -313,19 +416,8 @@ func ogTitleLines(title string, maxRunes int) []string {
 
 func (h *Hugo) writePages(path string) error {
 	pages := map[string]string{
-		filepath.Join(path, hugoAboutFile): `+++
-title = "About"
-description = ` + tools.EscapeTOMLString(h.Description) + `
-+++
-
-` + h.Description + `
-`,
-		filepath.Join(path, hugoSearchFile): `+++
-title = "Search"
-layout = "search"
-summary = "Search posts"
-+++
-`,
+		filepath.Join(path, hugoAboutFile):  fmt.Sprintf(hugoAboutPageTemplate, tools.EscapeTOMLString(h.Description), h.Description),
+		filepath.Join(path, hugoSearchFile): hugoSearchPageTemplate,
 	}
 	for name, content := range pages {
 		if err := os.WriteFile(name, []byte(content), 0644); err != nil {
@@ -334,85 +426,6 @@ summary = "Search posts"
 	}
 	return nil
 }
-
-const hugoEngagementTemplate = `{{- with .Params.reactions }}
-{{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
-<div class="isite-reactions" aria-label="Reactions">
-  {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
-  {{- if gt .thumbs_down 0 }}<span>👎 {{ .thumbs_down }}</span>{{ end }}
-  {{- if gt .laugh 0 }}<span>😄 {{ .laugh }}</span>{{ end }}
-  {{- if gt .hooray 0 }}<span>🎉 {{ .hooray }}</span>{{ end }}
-  {{- if gt .confused 0 }}<span>😕 {{ .confused }}</span>{{ end }}
-  {{- if gt .heart 0 }}<span>❤️ {{ .heart }}</span>{{ end }}
-  {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
-  {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
-</div>
-{{- end }}
-{{- end }}
-{{- with .Params.commentsKey }}
-{{- with (index site.Data.comments .) }}
-<section class="isite-comments" aria-labelledby="comments-heading">
-  <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
-  <p class="isite-comments-note">Read-only mirror of the comments on
-    {{ if $.Params.issueURL }} <a href="{{ $.Params.issueURL }}">this GitHub issue</a>{{ else }} the GitHub issue{{ end }}.
-  </p>
-  {{- range . }}
-  <article class="isite-comment">
-    <header class="isite-comment-header">
-      {{- if .URL }}<a href="{{ .URL }}">{{ end }}
-      {{- if .Avatar }}<img src="{{ .Avatar }}" alt="" width="40" height="40">{{ end }}
-      <div><strong>{{ .Author }}</strong><span>{{ .Updated }}</span></div>
-      {{- if .URL }}</a>{{ end }}
-    </header>
-    <div class="isite-comment-body md-content">{{ .Body | markdownify }}</div>
-  </article>
-  {{- end }}
-</section>
-{{- end }}
-{{- end }}
-`
-
-const hugoStylesheetTemplate = `.isite-reactions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  margin: 1.5rem 0;
-}
-.isite-reactions span {
-  border: 1px solid var(--tertiary);
-  border-radius: 999px;
-  padding: .25rem .65rem;
-  color: var(--secondary);
-}
-.isite-comments {
-  border-top: 1px solid var(--tertiary);
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-}
-.isite-comments h2 { font-size: 1.35rem; }
-.isite-comments h2 span { color: var(--secondary); font-size: .9em; }
-.isite-comments-note { color: var(--secondary); font-size: .9em; }
-.isite-comment {
-  border: 1px solid var(--tertiary);
-  border-radius: .5rem;
-  margin: 1rem 0;
-  overflow: hidden;
-}
-.isite-comment-header {
-  align-items: center;
-  background: var(--code-bg);
-  display: flex;
-  gap: .75rem;
-  padding: .75rem 1rem;
-}
-.isite-comment-header a { align-items: center; color: inherit; display: flex; gap: .75rem; width: 100%; }
-.isite-comment-header img { border-radius: 50%; }
-.isite-comment-header div { display: flex; flex-direction: column; }
-.isite-comment-header span { color: var(--secondary); font-size: .85em; }
-.isite-comment-body { padding: 1rem; }
-.isite-comment-body > :first-child { margin-top: 0; }
-.isite-comment-body > :last-child { margin-bottom: 0; }
-`
 
 func (h *Hugo) writeStylesheet(path string) error {
 	if err := os.WriteFile(filepath.Join(path, hugoStylesheet), []byte(hugoStylesheetTemplate), 0644); err != nil {
