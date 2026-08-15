@@ -7,6 +7,7 @@ Convert GitHub **i**ssues to a web**site**.
 ## Features
 
 - use GitHub issues as the source of truth
+- allow GFM with restrict HTML supports
 - generate posts from the issues with issue comments and reactions
 
 ## Examples
@@ -27,6 +28,13 @@ isite generate --help
 
 By default, `isite generate` uses Hugo with the PaperMod theme. After generating the site, build it with Hugo or
 explicitly select another supported engine.
+
+Hugo and Zola theme clones are cached in `~/.cache/isite/themes` for seven days. Remove expired caches and generated
+output, when requested, with:
+
+```bash
+isite prune --output output
+```
 
 ## Engines
 

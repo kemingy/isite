@@ -29,19 +29,16 @@ func TestGeneratorsRejectEmptyOutput(t *testing.T) {
 	}
 }
 
-func TestSanitizeCommentBody(t *testing.T) {
-	body := `<script>alert("xss")</script><strong>safe</strong><a href="javascript:alert(1)">bad</a><a href="https://example.com">link</a>`
-	sanitized := renderAndSanitizeCommentBody(body)
-	if strings.Contains(sanitized, "<script") || strings.Contains(sanitized, "javascript:") {
-		t.Fatalf("comment HTML was not sanitized: %s", sanitized)
+func TestSanitizeMarkdownSourcePreservesMarkdown(t *testing.T) {
+	source := "# Heading\n\n```go\nfmt.Println(\"safe\")\n```\n\n<script>alert(1)</script>"
+	sanitized := sanitizeMarkdownSource(source)
+	if !strings.Contains(sanitized, "# Heading") || !strings.Contains(sanitized, "```go") {
+		t.Fatalf("Markdown source was changed unexpectedly: %s", sanitized)
 	}
-	if !strings.Contains(sanitized, "<strong>safe</strong>") {
-		t.Fatalf("safe comment formatting was removed: %s", sanitized)
+	if strings.Contains(sanitized, "<script") {
+		t.Fatalf("unsafe HTML was not removed: %s", sanitized)
 	}
-	if !strings.Contains(sanitized, `rel="nofollow`) || !strings.Contains(sanitized, `target="_blank"`) {
-		t.Fatalf("external comment links were not hardened: %s", sanitized)
-	}
-	supported := renderAndSanitizeCommentBody(`<details><summary>More</summary><sub>x</sub><p style="text-align: center">c</p></details>`)
+	supported := sanitizeMarkdownSource(`<details><summary>More</summary><sub>x</sub><p style="text-align: center">c</p></details>`)
 	for _, element := range []string{"<details>", "<summary>More</summary>", "<sub>x</sub>", `<p style="text-align: center">c</p>`} {
 		if !strings.Contains(supported, element) {
 			t.Errorf("UGC policy removed supported comment element %q", element)

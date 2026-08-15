@@ -403,7 +403,7 @@ func (a *Astro) postContent(issue models.Issue) string {
 	if issue.URL != "" {
 		fmt.Fprintf(&body, "> Originally published as [GitHub issue #%d](%s).\n\n", issue.Number, issue.URL)
 	}
-	body.WriteString(issue.Body)
+	body.WriteString(sanitizeMarkdownSource(issue.Body))
 	body.WriteString("\n")
 	writeReactions(&body, issue.Reactions)
 	if len(issue.Comments) > 0 {
@@ -413,7 +413,7 @@ func (a *Astro) postContent(issue models.Issue) string {
 			if comment.HTMLURL != "" {
 				fmt.Fprintf(&body, "[View comment](%s) · %s\n\n", comment.HTMLURL, comment.UpdatedAt)
 			}
-			body.WriteString(renderAndSanitizeCommentBody(comment.Body))
+			body.WriteString(sanitizeMarkdownSource(comment.Body))
 			body.WriteString("\n")
 		}
 	}

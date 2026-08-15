@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	user string
-	repo string
+	user      string
+	repo      string
+	outputDir = "output"
 )
 
 var rootCmd = &cobra.Command{
@@ -25,4 +26,5 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&user, "user", "kemingy", "github user name or organization name")
 	rootCmd.PersistentFlags().StringVar(&repo, "repo", "isite", "github repository name")
+	rootCmd.PersistentFlags().StringVar(&outputDir, "output", "output", "generated output directory")
 }
