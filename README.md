@@ -7,8 +7,8 @@ Convert GitHub **i**ssues to a web**site**.
 ## Features
 
 - use GitHub issues as the source of truth
-- allow GFM with restrict HTML supports
 - generate posts from the issues with issue comments and reactions
+- allow GFM with restrict HTML supports
 
 ## Examples
 

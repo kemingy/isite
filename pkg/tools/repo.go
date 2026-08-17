@@ -150,11 +150,14 @@ func CloneThemeCached(repo, path, revision string, markers ...string) (bool, err
 		if err := os.RemoveAll(cachePath); err != nil {
 			return false, fmt.Errorf("failed to remove stale theme cache %s: %w", cachePath, err)
 		}
-		temporary, err := os.MkdirTemp(cacheRoot, ".theme-")
+		temporary, err := os.MkdirTemp(cacheRoot, ".isite-theme-")
 		if err != nil {
 			return false, fmt.Errorf("failed to create temporary theme cache: %w", err)
 		}
 		defer os.RemoveAll(temporary)
+		if err := os.Remove(temporary); err != nil {
+			return false, fmt.Errorf("failed to prepare temporary theme cache %s: %w", temporary, err)
+		}
 		if _, err := CloneTheme(repo, temporary, revision, markers...); err != nil {
 			return false, err
 		}
@@ -204,7 +207,8 @@ func PruneThemeCache() (int, error) {
 
 func PruneOutput(path string) (bool, error) {
 	clean := filepath.Clean(path)
-	if clean == "." || clean == string(filepath.Separator) || clean == "" {
+	volumeRoot := filepath.VolumeName(clean) + string(filepath.Separator)
+	if clean == "." || clean == volumeRoot || clean == "" {
 		return false, fmt.Errorf("refusing to remove unsafe output path %q", path)
 	}
 	info, err := os.Stat(clean)

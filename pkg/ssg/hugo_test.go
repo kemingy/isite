@@ -139,3 +139,10 @@ func TestHugoCodeBlocksAreHighlighted(t *testing.T) {
 		}
 	}
 }
+
+func TestGoldmarkEmoji(t *testing.T) {
+	body := renderAndSanitizeMarkdown("Great :+1:")
+	if !strings.Contains(body, "👍") {
+		t.Fatalf("emoji was not rendered: %s", body)
+	}
+}

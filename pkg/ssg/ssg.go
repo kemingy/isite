@@ -8,6 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
+	emoji "github.com/yuin/goldmark-emoji"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -28,6 +29,7 @@ var commentHTMLPolicy = newCommentHTMLPolicy()
 var markdownRenderer = goldmark.New(
 	goldmark.WithExtensions(
 		extension.GFM,
+		emoji.Emoji,
 		highlighting.NewHighlighting(
 			highlighting.WithStyle("github"),
 			highlighting.WithFormatOptions(chromaHTML.WithClasses(true), chromaHTML.Standalone(false)),
