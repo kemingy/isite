@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/cockroachdb/errors"
+	xhtml "golang.org/x/net/html"
 
 	"github.com/kemingy/isite/pkg/models"
 	"github.com/kemingy/isite/pkg/tools"
@@ -26,10 +27,12 @@ const (
 	hugoEngagementPartial = "layouts/_partials/extend_post_content.html"
 	hugoStylesheet        = "assets/css/extended/isite.css"
 	hugoCommentsDataDir   = "data/comments"
+	hugoPostsDataDir      = "data/posts"
+	hugoTOCPartial        = "layouts/_partials/toc.html"
 )
 
-// Hugo and PaperMod render the Markdown body as-is. Engagement data is kept
-// in front matter so the generated partial can render it outside the ToC.
+// Hugo receives sanitized HTML so unsafe raw HTML is never processed by its
+// Goldmark renderer.
 const hugoPostTemplate = `+++
 title = {{ toml_escape .Title }}
 date = {{ toml_escape .CreatedAt }}
@@ -44,6 +47,7 @@ tocOpen = false
 [params]
 commentCount = {{ len .Comments }}
 commentsKey = "issue-{{ .Number }}"
+contentKey = "issue-{{ .Number }}"
 [params.reactions]
 thumbs_up = {{ .Reactions.ThumbUp }}
 thumbs_down = {{ .Reactions.ThumbDown }}
@@ -62,7 +66,7 @@ hidden = true
 
 {{ if .URL }}> Originally published as [GitHub issue #{{ .Number }}]({{ .URL }}).
 
-{{ end }}{{ .Body }}
+{{ end }}
 `
 
 const hugoConfigTemplate = `baseURL = {{ toml_escape .BaseURL }}
@@ -109,11 +113,124 @@ weight = 40
 [taxonomies]
 tag = "tags"
 
+# Raw HTML is rendered before Hugo receives the generated content.
 [markup.goldmark.renderer]
-unsafe = true
+unsafe = false
 
 [outputs]
 home = ["HTML", "JSON"{{ if .Feed }}, "RSS"{{ end }}]
+`
+
+const hugoAboutPageTemplate = `+++
+title = "About"
+description = %s
++++
+
+%s
+`
+
+const hugoSearchPageTemplate = `+++
+title = "Search"
+layout = "search"
+summary = "Search posts"
++++
+`
+
+const hugoEngagementTemplate = `{{- with .Params.reactions }}
+{{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
+<div class="isite-reactions" aria-label="Reactions">
+  {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
+  {{- if gt .thumbs_down 0 }}<span>👎 {{ .thumbs_down }}</span>{{ end }}
+  {{- if gt .laugh 0 }}<span>😄 {{ .laugh }}</span>{{ end }}
+  {{- if gt .hooray 0 }}<span>🎉 {{ .hooray }}</span>{{ end }}
+  {{- if gt .confused 0 }}<span>😕 {{ .confused }}</span>{{ end }}
+  {{- if gt .heart 0 }}<span>❤️ {{ .heart }}</span>{{ end }}
+  {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
+  {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
+</div>
+{{- end }}
+{{- end }}
+{{- with $.Params.contentKey }}
+{{- with (index site.Data.posts .).bodyHTML }}
+<div class="post-content md-content">{{ . | safeHTML }}</div>
+{{- end }}
+{{- end }}
+{{- with .Params.commentsKey }}
+{{- with (index site.Data.comments .) }}
+<section class="isite-comments" aria-labelledby="comments-heading">
+  <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
+  <p class="isite-comments-note">Read-only mirror of the comments on
+    {{ if $.Params.issueURL }} <a href="{{ $.Params.issueURL }}">this GitHub issue</a>{{ else }} the GitHub issue{{ end }}.
+  </p>
+  {{- range . }}
+  <article class="isite-comment">
+    <header class="isite-comment-header">
+      {{- if .url }}<a href="{{ .url }}">{{ end }}
+      {{- if .avatar }}<img src="{{ .avatar }}" alt="" width="40" height="40">{{ end }}
+      <div><strong>{{ .author }}</strong><span>{{ .updated }}</span></div>
+      {{- if .url }}</a>{{ end }}
+    </header>
+    <div class="isite-comment-body md-content">{{ .body | safeHTML }}</div>
+  </article>
+  {{- end }}
+</section>
+{{- end }}
+{{- end }}
+`
+
+const hugoTOCTemplate = `{{- $page := . }}
+{{- with $page.Params.contentKey }}
+{{- with (index site.Data.posts .).tocHTML }}
+<details class="toc" {{ if ($page.Param "TocOpen") }}open{{ end }}>
+  <summary accesskey="c" title="(Alt + C)">
+    <span class="title">Table of Contents</span>
+  </summary>
+  <div class="inner">{{ . | safeHTML }}</div>
+</details>
+{{- end }}
+{{- end }}
+`
+
+const hugoStylesheetTemplate = `.isite-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1.5rem 0;
+}
+.isite-reactions span {
+  border: 1px solid var(--tertiary);
+  border-radius: 999px;
+  padding: .25rem .65rem;
+  color: var(--secondary);
+}
+.isite-comments {
+  border-top: 1px solid var(--tertiary);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+}
+.isite-comments h2 { font-size: 1.35rem; }
+.isite-comments h2 span { color: var(--secondary); font-size: .9em; }
+.isite-comments-note { color: var(--secondary); font-size: .9em; }
+.isite-comment {
+  border: 1px solid var(--tertiary);
+  border-radius: .5rem;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+.isite-comment-header {
+  align-items: center;
+  background: var(--code-bg);
+  display: flex;
+  gap: .75rem;
+  padding: .75rem 1rem;
+}
+.isite-comment-header a { align-items: center; color: inherit; display: flex; gap: .75rem; width: 100%; }
+.isite-comment-header img { border-radius: 50%; }
+.isite-comment-header div { display: flex; flex-direction: column; }
+.isite-comment-header span { color: var(--secondary); font-size: .85em; }
+.isite-comment-body { padding: 1rem; }
+.isite-comment-body > :first-child { margin-top: 0; }
+.isite-comment-body > :last-child { margin-bottom: 0; }
 `
 
 type Hugo struct {
@@ -140,7 +257,16 @@ func NewHugo(cmd *models.Command, meta *models.Repository) *Hugo {
 	if cmd.ThemeRevision != nil {
 		themeRevision = *cmd.ThemeRevision
 	}
-	return &Hugo{Title: cmd.Title, BaseURL: cmd.BaseURL, ThemeName: theme, ThemeRepo: themeRepo, ThemeRevision: themeRevision, Description: description, Feed: cmd.Feed, Katex: cmd.Katex}
+	return &Hugo{
+		Title:         cmd.Title,
+		BaseURL:       cmd.BaseURL,
+		ThemeName:     theme,
+		ThemeRepo:     themeRepo,
+		ThemeRevision: themeRevision,
+		Description:   description,
+		Feed:          cmd.Feed,
+		Katex:         cmd.Katex,
+	}
 }
 
 func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
@@ -151,12 +277,12 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the output absolute path for %s", outputDir)
 	}
-	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir, filepath.Dir(hugoEngagementPartial), filepath.Dir(hugoStylesheet), hugoCommentsDataDir} {
+	for _, dir := range []string{"themes", hugoContentDir, hugoOGDir, filepath.Dir(hugoEngagementPartial), filepath.Dir(hugoTOCPartial), filepath.Dir(hugoStylesheet), hugoCommentsDataDir, hugoPostsDataDir} {
 		if err := os.MkdirAll(filepath.Join(path, dir), 0755); err != nil {
 			return errors.Wrapf(err, "failed to create Hugo %s directory", dir)
 		}
 	}
-	if _, err := tools.CloneTheme(h.ThemeRepo, filepath.Join(path, "themes", h.ThemeName), h.ThemeRevision, "theme.toml"); err != nil {
+	if _, err := tools.CloneThemeCached(h.ThemeRepo, filepath.Join(path, "themes", h.ThemeName), h.ThemeRevision, "theme.toml"); err != nil {
 		return err
 	}
 	if err := h.writeConfig(path); err != nil {
@@ -166,6 +292,9 @@ func (h *Hugo) Generate(issues []models.Issue, outputDir string) error {
 		return err
 	}
 	if err := h.writeEngagementPartial(path); err != nil {
+		return err
+	}
+	if err := h.writeTOCPartial(path); err != nil {
 		return err
 	}
 	if err := h.writeStylesheet(path); err != nil {
@@ -211,6 +340,9 @@ func (h *Hugo) writePosts(path string, issues []models.Issue) error {
 			return err
 		}
 		if err := h.writeCommentsData(path, issue); err != nil {
+			return err
+		}
+		if err := h.writePostData(path, issue); err != nil {
 			return err
 		}
 	}
@@ -313,19 +445,8 @@ func ogTitleLines(title string, maxRunes int) []string {
 
 func (h *Hugo) writePages(path string) error {
 	pages := map[string]string{
-		filepath.Join(path, hugoAboutFile): `+++
-title = "About"
-description = ` + tools.EscapeTOMLString(h.Description) + `
-+++
-
-` + h.Description + `
-`,
-		filepath.Join(path, hugoSearchFile): `+++
-title = "Search"
-layout = "search"
-summary = "Search posts"
-+++
-`,
+		filepath.Join(path, hugoAboutFile):  fmt.Sprintf(hugoAboutPageTemplate, tools.EscapeTOMLString(h.Description), h.Description),
+		filepath.Join(path, hugoSearchFile): hugoSearchPageTemplate,
 	}
 	for name, content := range pages {
 		if err := os.WriteFile(name, []byte(content), 0644); err != nil {
@@ -334,85 +455,6 @@ summary = "Search posts"
 	}
 	return nil
 }
-
-const hugoEngagementTemplate = `{{- with .Params.reactions }}
-{{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
-<div class="isite-reactions" aria-label="Reactions">
-  {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
-  {{- if gt .thumbs_down 0 }}<span>👎 {{ .thumbs_down }}</span>{{ end }}
-  {{- if gt .laugh 0 }}<span>😄 {{ .laugh }}</span>{{ end }}
-  {{- if gt .hooray 0 }}<span>🎉 {{ .hooray }}</span>{{ end }}
-  {{- if gt .confused 0 }}<span>😕 {{ .confused }}</span>{{ end }}
-  {{- if gt .heart 0 }}<span>❤️ {{ .heart }}</span>{{ end }}
-  {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
-  {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
-</div>
-{{- end }}
-{{- end }}
-{{- with .Params.commentsKey }}
-{{- with (index site.Data.comments .) }}
-<section class="isite-comments" aria-labelledby="comments-heading">
-  <h2 id="comments-heading">Comments <span>{{ len . }}</span></h2>
-  <p class="isite-comments-note">Read-only mirror of the comments on
-    {{ if $.Params.issueURL }} <a href="{{ $.Params.issueURL }}">this GitHub issue</a>{{ else }} the GitHub issue{{ end }}.
-  </p>
-  {{- range . }}
-  <article class="isite-comment">
-    <header class="isite-comment-header">
-      {{- if .URL }}<a href="{{ .URL }}">{{ end }}
-      {{- if .Avatar }}<img src="{{ .Avatar }}" alt="" width="40" height="40">{{ end }}
-      <div><strong>{{ .Author }}</strong><span>{{ .Updated }}</span></div>
-      {{- if .URL }}</a>{{ end }}
-    </header>
-    <div class="isite-comment-body md-content">{{ .Body | markdownify }}</div>
-  </article>
-  {{- end }}
-</section>
-{{- end }}
-{{- end }}
-`
-
-const hugoStylesheetTemplate = `.isite-reactions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  margin: 1.5rem 0;
-}
-.isite-reactions span {
-  border: 1px solid var(--tertiary);
-  border-radius: 999px;
-  padding: .25rem .65rem;
-  color: var(--secondary);
-}
-.isite-comments {
-  border-top: 1px solid var(--tertiary);
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-}
-.isite-comments h2 { font-size: 1.35rem; }
-.isite-comments h2 span { color: var(--secondary); font-size: .9em; }
-.isite-comments-note { color: var(--secondary); font-size: .9em; }
-.isite-comment {
-  border: 1px solid var(--tertiary);
-  border-radius: .5rem;
-  margin: 1rem 0;
-  overflow: hidden;
-}
-.isite-comment-header {
-  align-items: center;
-  background: var(--code-bg);
-  display: flex;
-  gap: .75rem;
-  padding: .75rem 1rem;
-}
-.isite-comment-header a { align-items: center; color: inherit; display: flex; gap: .75rem; width: 100%; }
-.isite-comment-header img { border-radius: 50%; }
-.isite-comment-header div { display: flex; flex-direction: column; }
-.isite-comment-header span { color: var(--secondary); font-size: .85em; }
-.isite-comment-body { padding: 1rem; }
-.isite-comment-body > :first-child { margin-top: 0; }
-.isite-comment-body > :last-child { margin-bottom: 0; }
-`
 
 func (h *Hugo) writeStylesheet(path string) error {
 	if err := os.WriteFile(filepath.Join(path, hugoStylesheet), []byte(hugoStylesheetTemplate), 0644); err != nil {
@@ -429,12 +471,17 @@ type hugoComment struct {
 	Body    string `json:"body"`
 }
 
+type hugoPostData struct {
+	BodyHTML string `json:"bodyHTML"`
+	TOCHTML  string `json:"tocHTML"`
+}
+
 func (h *Hugo) writeCommentsData(path string, issue models.Issue) error {
 	comments := make([]hugoComment, 0, len(issue.Comments))
 	for _, comment := range issue.Comments {
 		comments = append(comments, hugoComment{
 			Author: comment.User.Login, Avatar: comment.User.AvatarURL,
-			URL: comment.HTMLURL, Updated: comment.UpdatedAt, Body: comment.Body,
+			URL: comment.HTMLURL, Updated: comment.UpdatedAt, Body: renderAndSanitizeMarkdown(comment.Body),
 		})
 	}
 	content, err := json.Marshal(comments)
@@ -446,6 +493,97 @@ func (h *Hugo) writeCommentsData(path string, issue models.Issue) error {
 		return errors.Wrapf(err, "failed to write Hugo comments for issue #%d", issue.Number)
 	}
 	return nil
+}
+
+func (h *Hugo) writePostData(path string, issue models.Issue) error {
+	bodyHTML := renderAndSanitizeMarkdown(issue.Body)
+	data := hugoPostData{BodyHTML: bodyHTML, TOCHTML: hugoTOC(bodyHTML)}
+	content, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrapf(err, "failed to encode Hugo post data for issue #%d", issue.Number)
+	}
+	name := filepath.Join(path, hugoPostsDataDir, fmt.Sprintf("issue-%d.json", issue.Number))
+	if err := os.WriteFile(name, content, 0644); err != nil {
+		return errors.Wrapf(err, "failed to write Hugo post data for issue #%d", issue.Number)
+	}
+	return nil
+}
+
+func (h *Hugo) writeTOCPartial(path string) error {
+	name := filepath.Join(path, hugoTOCPartial)
+	if err := os.WriteFile(name, []byte(hugoTOCTemplate), 0644); err != nil {
+		return errors.Wrap(err, "failed to write Hugo TOC partial")
+	}
+	return nil
+}
+
+type hugoTOCEntry struct {
+	ID       string
+	Title    string
+	Level    int
+	Children []*hugoTOCEntry
+}
+
+func hugoTOC(body string) string {
+	doc, err := xhtml.Parse(strings.NewReader(body))
+	if err != nil {
+		return ""
+	}
+	root := &hugoTOCEntry{Level: 0}
+	stack := []*hugoTOCEntry{root}
+	var visit func(*xhtml.Node)
+	visit = func(node *xhtml.Node) {
+		if node.Type == xhtml.ElementNode && len(node.Data) == 2 && node.Data[0] == 'h' && node.Data[1] >= '1' && node.Data[1] <= '3' {
+			id := ""
+			for _, attr := range node.Attr {
+				if attr.Key == "id" {
+					id = attr.Val
+				}
+			}
+			if id != "" {
+				level := int(node.Data[1] - '0')
+				for len(stack) > 1 && level <= stack[len(stack)-1].Level {
+					stack = stack[:len(stack)-1]
+				}
+				entry := &hugoTOCEntry{ID: id, Title: html.EscapeString(hugoNodeText(node)), Level: level}
+				stack[len(stack)-1].Children = append(stack[len(stack)-1].Children, entry)
+				stack = append(stack, entry)
+			}
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			visit(child)
+		}
+	}
+	visit(doc)
+	if len(root.Children) == 0 {
+		return ""
+	}
+	var out strings.Builder
+	renderTOCEntries(&out, root.Children)
+	return out.String()
+}
+
+func hugoNodeText(node *xhtml.Node) string {
+	if node.Type == xhtml.TextNode {
+		return node.Data
+	}
+	var text strings.Builder
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		text.WriteString(hugoNodeText(child))
+	}
+	return strings.Join(strings.Fields(text.String()), " ")
+}
+
+func renderTOCEntries(out *strings.Builder, entries []*hugoTOCEntry) {
+	out.WriteString("<ul>")
+	for _, entry := range entries {
+		fmt.Fprintf(out, `<li><a href="#%s">%s</a>`, html.EscapeString(entry.ID), entry.Title)
+		if len(entry.Children) > 0 {
+			renderTOCEntries(out, entry.Children)
+		}
+		out.WriteString("</li>")
+	}
+	out.WriteString("</ul>")
 }
 
 func (h *Hugo) writeEngagementPartial(path string) error {

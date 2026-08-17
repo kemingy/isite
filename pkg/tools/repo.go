@@ -1,14 +1,19 @@
 package tools
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
+
+const ThemeCacheTTL = 7 * 24 * time.Hour
 
 func DirExist(path string) (bool, error) {
 	info, err := os.Stat(path)
@@ -113,4 +118,137 @@ func resolveThemeRevision(repo *git.Repository, revision string) (*plumbing.Hash
 	// go-git's shorthand resolver does not search remote-tracking refs, so
 	// try the equivalent remote ref before reporting the original failure.
 	return repo.ResolveRevision(plumbing.Revision("refs/remotes/origin/" + revision))
+}
+
+func CloneThemeCached(repo, path, revision string, markers ...string) (bool, error) {
+	if info, err := os.Lstat(path); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			if err := os.Remove(path); err != nil {
+				return false, fmt.Errorf("failed to replace cached theme link %s: %w", path, err)
+			}
+		} else {
+			return CloneTheme(repo, path, revision, markers...)
+		}
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("failed to stat theme path %s: %w", path, err)
+	}
+
+	cacheRoot, err := themeCacheRoot()
+	if err != nil {
+		return false, err
+	}
+	if err := os.MkdirAll(cacheRoot, 0755); err != nil {
+		return false, fmt.Errorf("failed to create theme cache %s: %w", cacheRoot, err)
+	}
+	cachePath := filepath.Join(cacheRoot, themeCacheKey(repo, revision))
+	cloned := false
+	if cacheIsUsable(cachePath, markers) {
+		if err := os.Chtimes(cachePath, time.Now(), time.Now()); err != nil {
+			return false, fmt.Errorf("failed to refresh theme cache %s: %w", cachePath, err)
+		}
+	} else {
+		if err := os.RemoveAll(cachePath); err != nil {
+			return false, fmt.Errorf("failed to remove stale theme cache %s: %w", cachePath, err)
+		}
+		temporary, err := os.MkdirTemp(cacheRoot, ".isite-theme-")
+		if err != nil {
+			return false, fmt.Errorf("failed to create temporary theme cache: %w", err)
+		}
+		defer os.RemoveAll(temporary)
+		if err := os.Remove(temporary); err != nil {
+			return false, fmt.Errorf("failed to prepare temporary theme cache %s: %w", temporary, err)
+		}
+		if _, err := CloneTheme(repo, temporary, revision, markers...); err != nil {
+			return false, err
+		}
+		cloned = true
+		if err := os.Rename(temporary, cachePath); err != nil {
+			return false, fmt.Errorf("failed to store theme cache %s: %w", cachePath, err)
+		}
+	}
+	if err := os.Symlink(cachePath, path); err != nil {
+		return false, fmt.Errorf("failed to link cached theme %s to %s: %w", cachePath, path, err)
+	}
+	return cloned, nil
+}
+
+func PruneThemeCache() (int, error) {
+	root, err := themeCacheRoot()
+	if err != nil {
+		return 0, err
+	}
+	entries, err := os.ReadDir(root)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to read theme cache %s: %w", root, err)
+	}
+	removed := 0
+	cutoff := time.Now().Add(-ThemeCacheTTL)
+	for _, entry := range entries {
+		if !entry.IsDir() || len(entry.Name()) != sha256.Size*2 {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return removed, fmt.Errorf("failed to stat theme cache %s: %w", entry.Name(), err)
+		}
+		if info.ModTime().After(cutoff) {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(root, entry.Name())); err != nil {
+			return removed, fmt.Errorf("failed to remove expired theme cache %s: %w", entry.Name(), err)
+		}
+		removed++
+	}
+	return removed, nil
+}
+
+func PruneOutput(path string) (bool, error) {
+	clean := filepath.Clean(path)
+	volumeRoot := filepath.VolumeName(clean) + string(filepath.Separator)
+	if clean == "." || clean == volumeRoot || clean == "" {
+		return false, fmt.Errorf("refusing to remove unsafe output path %q", path)
+	}
+	info, err := os.Stat(clean)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to stat output path %s: %w", clean, err)
+	}
+	if !info.IsDir() {
+		return false, fmt.Errorf("output path %s is not a directory", clean)
+	}
+	if err := os.RemoveAll(clean); err != nil {
+		return false, fmt.Errorf("failed to remove output path %s: %w", clean, err)
+	}
+	return true, nil
+}
+
+func themeCacheRoot() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to find the user home directory: %w", err)
+	}
+	return filepath.Join(home, ".cache", "isite", "themes"), nil
+}
+
+func themeCacheKey(repo, revision string) string {
+	sum := sha256.Sum256([]byte(repo + "\x00" + revision))
+	return hex.EncodeToString(sum[:])
+}
+
+func cacheIsUsable(path string, markers []string) bool {
+	info, err := os.Stat(path)
+	if err != nil || !info.IsDir() || time.Since(info.ModTime()) >= ThemeCacheTTL {
+		return false
+	}
+	for _, marker := range markers {
+		if _, err := os.Stat(filepath.Join(path, marker)); err != nil {
+			return false
+		}
+	}
+	return true
 }

@@ -26,7 +26,6 @@ func init() {
 	generateCmd.Flags().StringSliceVar(&cmd.Label, "label", []string{}, "filter the github issue by the labels")
 
 	generateCmd.Flags().StringVar(&cmd.Engine, "engine", "hugo", "the static site generator engine, default is `hugo`, choose from [hugo, zola, astro]")
-	generateCmd.Flags().StringVar(&cmd.Output, "output", "output", "the output dir for the generated files")
 	generateCmd.Flags().StringVar(&cmd.Title, "title", "", "the title of the static site, if not set, will use the repository name")
 	generateCmd.Flags().StringVar(&cmd.Theme, "theme", "", "the theme name of the static site")
 	generateCmd.Flags().StringVar(&cmd.ThemeRepo, "theme-repo", "", "the theme repository of the static site, format is `<user>/<repo>`")
@@ -37,6 +36,7 @@ func init() {
 }
 
 func generate(c *cobra.Command, _ []string) error {
+	cmd.Output = outputDir
 	if c.Flags().Changed("theme-revision") {
 		cmd.ThemeRevision = &themeRevision
 	} else {

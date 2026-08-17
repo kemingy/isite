@@ -23,6 +23,75 @@ const (
 	astroThemeConfigFile  = "astro-paper.config.ts"
 )
 
+const astroThemeConfigTemplate = `import { defineAstroPaperConfig } from "./src/types/config";
+
+export default defineAstroPaperConfig({
+  site: {
+    url: %s,
+    title: %s,
+    description: %s,
+    author: %s,
+    lang: "en",
+    timezone: "UTC",
+    dir: "ltr",
+  },
+  posts: { perPage: 10, perIndex: 10 },
+  features: {
+    lightAndDarkMode: true,
+    dynamicOgImage: true,
+    showArchives: true,
+    showBackButton: true,
+    editPost: { enabled: false },
+    search: "pagefind",
+  },
+  socials: %s,
+  shareLinks: [],
+});
+`
+
+const astroPostFrontmatterTemplate = `---
+author: %s
+pubDatetime: %s
+modDatetime: %s
+title: %s
+tags: %s
+description: %s
+canonicalURL: %s
+---
+
+`
+
+const astroAboutPageTemplate = `---
+title: %s
+description: %s
+---
+
+%s
+`
+
+const (
+	astroConfigMarker    = "export default defineConfig({"
+	astroHomeHeroStart   = `    <section id="hero"`
+	astroHomePostsMarker = "    {\n      featuredPosts"
+	astroRSSLinkTemplate = `
+      <a target="_blank" rel="noopener noreferrer" href={import.meta.env.BASE_URL.replace(/\/?$/, "/") + "rss.xml"} class="inline-block" aria-label="RSS Feed" title="RSS Feed">
+        <IconRss width={20} height={20} class="stroke-accent scale-125 stroke-3 rtl:-rotate-90" />
+        <span class="sr-only">RSS Feed</span>
+      </a>`
+	astroHomeHeroTemplate = `    <section id="hero" class="border-border border-b pt-8 pb-6">
+      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">{config.site.title}</h1>%s
+      <p>{config.site.description}</p>
+      {socials.length > 0 && (
+        <div class="mt-4 flex max-sm:flex-col sm:items-center">
+          <div class="me-2 mb-1 whitespace-nowrap sm:mb-0">{t.home.socialLinks}:</div>
+          <Socials />
+        </div>
+      )}
+    </section>
+
+`
+)
+
 type Astro struct {
 	Title         string
 	BaseURL       string
@@ -132,31 +201,7 @@ func (a *Astro) themeConfig() string {
 	if a.Repository != "" {
 		socials = fmt.Sprintf(`[{ name: "github", url: %s }]`, jsonString(a.Repository))
 	}
-	return fmt.Sprintf(`import { defineAstroPaperConfig } from "./src/types/config";
-
-export default defineAstroPaperConfig({
-  site: {
-    url: %s,
-    title: %s,
-    description: %s,
-    author: %s,
-    lang: "en",
-    timezone: "UTC",
-    dir: "ltr",
-  },
-  posts: { perPage: 10, perIndex: 10 },
-  features: {
-    lightAndDarkMode: true,
-    dynamicOgImage: true,
-    showArchives: true,
-    showBackButton: true,
-    editPost: { enabled: false },
-    search: "pagefind",
-  },
-  socials: %s,
-  shareLinks: [],
-});
-`, jsonString(siteURL), jsonString(a.Title), jsonString(a.Description), jsonString(a.Author), socials)
+	return fmt.Sprintf(astroThemeConfigTemplate, jsonString(siteURL), jsonString(a.Title), jsonString(a.Description), jsonString(a.Author), socials)
 }
 
 func (a *Astro) configureAstro(path string) error {
@@ -177,12 +222,11 @@ func (a *Astro) configureAstro(path string) error {
 	text = strings.ReplaceAll(text, "remarkPlugins: [remarkMath, ", "remarkPlugins: [")
 	text = strings.ReplaceAll(text, "rehypePlugins: [rehypeCallouts, rehypeKatex]", "rehypePlugins: [rehypeCallouts]")
 
-	marker := "export default defineConfig({"
-	if !strings.Contains(text, marker) {
+	if !strings.Contains(text, astroConfigMarker) {
 		return errors.New("Astro theme config does not contain defineConfig")
 	}
 	_, base := astroDeployment(a.BaseURL)
-	text = strings.Replace(text, marker, marker+"\n  base: "+jsonString(base)+", // isite:base", 1)
+	text = strings.Replace(text, astroConfigMarker, astroConfigMarker+"\n  base: "+jsonString(base)+", // isite:base", 1)
 	if a.Katex {
 		text = strings.Replace(text, "import {", `import remarkMath from "remark-math"; // isite:katex
 import rehypeKatex from "rehype-katex"; // isite:katex
@@ -237,31 +281,16 @@ func (a *Astro) configureHome(path string) error {
 		return errors.Wrap(err, "failed to read AstroPaper home page")
 	}
 	text := string(content)
-	start := strings.Index(text, `    <section id="hero"`)
-	end := strings.Index(text, "    {\n      featuredPosts")
+	start := strings.Index(text, astroHomeHeroStart)
+	end := strings.Index(text, astroHomePostsMarker)
 	if start < 0 || end <= start {
 		return errors.New("AstroPaper home page structure is not supported by this isite version")
 	}
 	rss := ""
 	if a.Feed {
-		rss = `
-      <a target="_blank" rel="noopener noreferrer" href={import.meta.env.BASE_URL.replace(/\/?$/, "/") + "rss.xml"} class="inline-block" aria-label="RSS Feed" title="RSS Feed">
-        <IconRss width={20} height={20} class="stroke-accent scale-125 stroke-3 rtl:-rotate-90" />
-        <span class="sr-only">RSS Feed</span>
-      </a>`
+		rss = astroRSSLinkTemplate
 	}
-	hero := `    <section id="hero" class="border-border border-b pt-8 pb-6">
-      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">{config.site.title}</h1>` + rss + `
-      <p>{config.site.description}</p>
-      {socials.length > 0 && (
-        <div class="mt-4 flex max-sm:flex-col sm:items-center">
-          <div class="me-2 mb-1 whitespace-nowrap sm:mb-0">{t.home.socialLinks}:</div>
-          <Socials />
-        </div>
-      )}
-    </section>
-
-`
+	hero := fmt.Sprintf(astroHomeHeroTemplate, rss)
 	text = text[:start] + hero + text[end:]
 	if err := os.WriteFile(name, []byte(text), 0644); err != nil {
 		return errors.Wrap(err, "failed to write AstroPaper home page")
@@ -316,7 +345,7 @@ func (a *Astro) configureAbout(path string) error {
 	if a.Repository != "" {
 		body += fmt.Sprintf("\n\nPosts on this site are generated from [%s issues](%s/issues).", a.Title, a.Repository)
 	}
-	content := fmt.Sprintf("---\ntitle: %s\ndescription: %s\n---\n\n%s\n", jsonString("About "+a.Title), jsonString(a.Description), body)
+	content := fmt.Sprintf(astroAboutPageTemplate, jsonString("About "+a.Title), jsonString(a.Description), body)
 	if err := os.WriteFile(filepath.Join(dir, "about.md"), []byte(content), 0644); err != nil {
 		return errors.Wrap(err, "failed to write Astro about page")
 	}
@@ -369,12 +398,12 @@ func (a *Astro) postContent(issue models.Issue) string {
 		tags = append(tags, label.Name)
 	}
 	var body bytes.Buffer
-	fmt.Fprintf(&body, "---\nauthor: %s\npubDatetime: %s\nmodDatetime: %s\ntitle: %s\ntags: %s\ndescription: %s\ncanonicalURL: %s\n---\n\n",
+	fmt.Fprintf(&body, astroPostFrontmatterTemplate,
 		jsonString(issue.User.Login), issue.CreatedAt, issue.UpdatedAt, jsonString(issue.Title), jsonValue(tags), jsonString(issue.Title), jsonString(issue.URL))
 	if issue.URL != "" {
 		fmt.Fprintf(&body, "> Originally published as [GitHub issue #%d](%s).\n\n", issue.Number, issue.URL)
 	}
-	body.WriteString(issue.Body)
+	body.WriteString(sanitizeMarkdownSource(issue.Body))
 	body.WriteString("\n")
 	writeReactions(&body, issue.Reactions)
 	if len(issue.Comments) > 0 {
@@ -384,7 +413,7 @@ func (a *Astro) postContent(issue models.Issue) string {
 			if comment.HTMLURL != "" {
 				fmt.Fprintf(&body, "[View comment](%s) · %s\n\n", comment.HTMLURL, comment.UpdatedAt)
 			}
-			body.WriteString(comment.Body)
+			body.WriteString(sanitizeMarkdownSource(comment.Body))
 			body.WriteString("\n")
 		}
 	}
