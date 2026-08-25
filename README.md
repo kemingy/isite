@@ -171,7 +171,7 @@ Replace the Hugo generation/build step with:
 ```yaml
       - name: Generate Zola site
         env:
-          ZOLA_VERSION: v0.23.3
+          ZOLA_VERSION: v0.23.4
         run: |
           gh release download $ISITE_VERSION --repo kemingy/isite -p '*linux_amd64*' -O- \
             | tar -xz -C /usr/local/bin isite

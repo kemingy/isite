@@ -51,7 +51,7 @@ jobs:
       - name: Zola build test
         env:
           GH_TOKEN: ${{ github.token }}
-          ZOLA_VERSION: v0.23.3
+          ZOLA_VERSION: v0.23.4
         run: |
           gh release download $ZOLA_VERSION --repo getzola/zola -p '*x86_64-unknown-linux-gnu*' -O- | tar -xz -C /usr/local/bin zola
           ./bin/isite generate --engine zola --repo withcode --user kemingy --label "python"

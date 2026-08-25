@@ -76,7 +76,6 @@ bottom_footnotes = true
 github_alerts = true
 insert_anchor_links = "heading"
 render_emoji = true
-render_unsafe = true
 
 [markdown.highlighting]
 light_theme = "github-light"
