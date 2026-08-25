@@ -167,7 +167,9 @@ func CloneThemeCached(repo, path, revision string, markers ...string) (bool, err
 		}
 	}
 	if err := os.Symlink(cachePath, path); err != nil {
-		return false, fmt.Errorf("failed to link cached theme %s to %s: %w", cachePath, path, err)
+		if copyErr := os.CopyFS(path, os.DirFS(cachePath)); copyErr != nil {
+			return false, fmt.Errorf("failed to link cached theme %s to %s (%w), and fallback copy failed: %w", cachePath, path, err, copyErr)
+		}
 	}
 	return cloned, nil
 }
