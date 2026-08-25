@@ -136,7 +136,12 @@ summary = "Search posts"
 +++
 `
 
-const hugoEngagementTemplate = `{{- with .Params.reactions }}
+const hugoEngagementTemplate = `{{- with .Params.contentKey }}
+{{- with (index site.Data.posts .).bodyHTML }}
+<div class="post-content md-content">{{ . | safeHTML }}</div>
+{{- end }}
+{{- end }}
+{{- with .Params.reactions }}
 {{- if or (gt .thumbs_up 0) (gt .thumbs_down 0) (gt .laugh 0) (gt .hooray 0) (gt .confused 0) (gt .heart 0) (gt .rocket 0) (gt .eyes 0) }}
 <div class="isite-reactions" aria-label="Reactions">
   {{- if gt .thumbs_up 0 }}<span>👍 {{ .thumbs_up }}</span>{{ end }}
@@ -148,11 +153,6 @@ const hugoEngagementTemplate = `{{- with .Params.reactions }}
   {{- if gt .rocket 0 }}<span>🚀 {{ .rocket }}</span>{{ end }}
   {{- if gt .eyes 0 }}<span>👀 {{ .eyes }}</span>{{ end }}
 </div>
-{{- end }}
-{{- end }}
-{{- with $.Params.contentKey }}
-{{- with (index site.Data.posts .).bodyHTML }}
-<div class="post-content md-content">{{ . | safeHTML }}</div>
 {{- end }}
 {{- end }}
 {{- with .Params.commentsKey }}
