@@ -6,8 +6,6 @@ CGO_ENABLED ?= 0
 # Golang dir
 ROOT := github.com/kemingy/isite
 GOPATH ?= $(shell go env GOPATH)
-BIN_DIR := $(GOPATH)/bin
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 
 # Version
 GIT_TAG ?= $(shell git describe --tags --dirty=.dirty --always)
@@ -27,11 +25,8 @@ build:
 format:
 	@go fmt ./...
 
-lint: $(GOLANGCI_LINT)
-	@$(GOLANGCI_LINT) run
-
-$(GOLANGCI_LINT):
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(BIN_DIR)
+lint:
+	@golangci-lint run
 
 clean:
 	@-rm -rf $(OUTPUT_DIR)

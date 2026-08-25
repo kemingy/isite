@@ -44,12 +44,12 @@ eyes = {{ .Reactions.Eyes }}
 url = "{{ .HTMLURL }}"
 author_name = "{{ .User.Login }}"
 author_avatar = "{{ .User.AvatarURL }}"
-content = {{ toml_escape .Body }}
+content = {{ toml_escape (render_markdown .Body) }}
 updated_at = "{{ .UpdatedAt }}"
 {{ end }}
 +++
 
-{{ .Body }}
+{{ render_markdown .Body }}
 `
 
 const zolaIndexTemplate = `
@@ -150,7 +150,7 @@ func (z *Zola) generateDir(path string) error {
 }
 
 func (z *Zola) downloadTheme(path string) error {
-	_, err := tools.CloneTheme(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName), z.ThemeRevision)
+	_, err := tools.CloneThemeCached(z.ThemeRepo, filepath.Join(path, "themes", z.ThemeName), z.ThemeRevision)
 	return err
 }
 
@@ -196,6 +196,7 @@ func (z *Zola) generateIndex(path string) error {
 func (z *Zola) generatePost(path string, issues []models.Issue) error {
 	funcMap := template.FuncMap{
 		templateTOMLEscape: tools.EscapeTOMLString,
+		"render_markdown":  renderAndSanitizeMarkdown,
 	}
 	post, err := template.New("post").Funcs(funcMap).Parse(zolaPostTemplate)
 	if err != nil {

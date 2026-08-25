@@ -86,7 +86,7 @@ func TestAstroGenerate(t *testing.T) {
 		`url: "https://example.github.io/notes/"`, `title: "A \"quoted\" title"`, `author: "owner"`,
 		`https://github.com/example/notes`)
 	assertFileContains(t, filepath.Join(output, astroPostsDir, "issue-42.md"),
-		`title: "Front matter: \"safe\""`, `tags: ["astro","Top"]`, "# Markdown body",
+		`title: "Front matter: \"safe\""`, `tags: ["astro","Top"]`, "<h1",
 		"## Reactions", "👍 3 · ❤️ 2", "## Comments", "A multiline comment\nwith --- inside.")
 	assertFileContains(t, filepath.Join(output, "src", "pages", "index.astro"),
 		"{config.site.title}", "{config.site.description}", "rss.xml", `rel="noopener noreferrer"`)
