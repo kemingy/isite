@@ -137,8 +137,10 @@ summary = "Search posts"
 `
 
 const hugoEngagementTemplate = `{{- with .Params.contentKey }}
-{{- with (index site.Data.posts .).bodyHTML }}
+{{- with (index site.Data.posts .) }}
+{{- with .bodyHTML }}
 <div class="post-content md-content">{{ . | safeHTML }}</div>
+{{- end }}
 {{- end }}
 {{- end }}
 {{- with .Params.reactions }}
@@ -180,13 +182,15 @@ const hugoEngagementTemplate = `{{- with .Params.contentKey }}
 
 const hugoTOCTemplate = `{{- $page := . }}
 {{- with $page.Params.contentKey }}
-{{- with (index site.Data.posts .).tocHTML }}
+{{- with (index site.Data.posts .) }}
+{{- with .tocHTML }}
 <details class="toc" {{ if ($page.Param "TocOpen") }}open{{ end }}>
   <summary accesskey="c" title="(Alt + C)">
     <span class="title">Table of Contents</span>
   </summary>
   <div class="inner">{{ . | safeHTML }}</div>
 </details>
+{{- end }}
 {{- end }}
 {{- end }}
 `
