@@ -44,12 +44,12 @@ eyes = {{ .Reactions.Eyes }}
 url = "{{ .HTMLURL }}"
 author_name = "{{ .User.Login }}"
 author_avatar = "{{ .User.AvatarURL }}"
-content = {{ toml_escape (sanitize_markdown .Body) }}
+content = {{ toml_escape (render_markdown .Body) }}
 updated_at = "{{ .UpdatedAt }}"
 {{ end }}
 +++
 
-{{ sanitize_markdown .Body }}
+{{ render_markdown .Body }}
 `
 
 const zolaIndexTemplate = `
@@ -76,6 +76,7 @@ bottom_footnotes = true
 github_alerts = true
 insert_anchor_links = "heading"
 render_emoji = true
+render_unsafe = true
 
 [markdown.highlighting]
 light_theme = "github-light"
@@ -195,8 +196,8 @@ func (z *Zola) generateIndex(path string) error {
 
 func (z *Zola) generatePost(path string, issues []models.Issue) error {
 	funcMap := template.FuncMap{
-		templateTOMLEscape:  tools.EscapeTOMLString,
-		"sanitize_markdown": sanitizeMarkdownSource,
+		templateTOMLEscape: tools.EscapeTOMLString,
+		"render_markdown":  renderAndSanitizeMarkdown,
 	}
 	post, err := template.New("post").Funcs(funcMap).Parse(zolaPostTemplate)
 	if err != nil {

@@ -53,14 +53,10 @@ func newCommentHTMLPolicy() *bluemonday.Policy {
 	return policy
 }
 
-func sanitizeMarkdownSource(body string) string {
-	return string(commentHTMLPolicy.SanitizeBytes([]byte(body)))
-}
-
 func renderAndSanitizeMarkdown(body string) string {
 	var rendered bytes.Buffer
 	if err := markdownRenderer.Convert([]byte(body), &rendered); err != nil {
-		return ""
+		return string(commentHTMLPolicy.SanitizeBytes([]byte(body)))
 	}
 	return string(commentHTMLPolicy.SanitizeBytes(rendered.Bytes()))
 }

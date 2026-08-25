@@ -205,28 +205,6 @@ func PruneThemeCache() (int, error) {
 	return removed, nil
 }
 
-func PruneOutput(path string) (bool, error) {
-	clean := filepath.Clean(path)
-	volumeRoot := filepath.VolumeName(clean) + string(filepath.Separator)
-	if clean == "." || clean == volumeRoot || clean == "" {
-		return false, fmt.Errorf("refusing to remove unsafe output path %q", path)
-	}
-	info, err := os.Stat(clean)
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("failed to stat output path %s: %w", clean, err)
-	}
-	if !info.IsDir() {
-		return false, fmt.Errorf("output path %s is not a directory", clean)
-	}
-	if err := os.RemoveAll(clean); err != nil {
-		return false, fmt.Errorf("failed to remove output path %s: %w", clean, err)
-	}
-	return true, nil
-}
-
 func themeCacheRoot() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

@@ -29,16 +29,15 @@ func TestGeneratorsRejectEmptyOutput(t *testing.T) {
 	}
 }
 
-func TestSanitizeMarkdownSourcePreservesMarkdown(t *testing.T) {
-	source := "# Heading\n\n```go\nfmt.Println(\"safe\")\n```\n\n<script>alert(1)</script>"
-	sanitized := sanitizeMarkdownSource(source)
-	if !strings.Contains(sanitized, "# Heading") || !strings.Contains(sanitized, "```go") {
-		t.Fatalf("Markdown source was changed unexpectedly: %s", sanitized)
+func TestRenderAndSanitizeMarkdown(t *testing.T) {
+	sanitized := renderAndSanitizeMarkdown("# Heading\n\n```go\nfmt.Println(\"safe\")\n```\n\n<script>alert(1)</script>")
+	if !strings.Contains(sanitized, "<h1") || !strings.Contains(sanitized, "class=\"chroma\"") {
+		t.Fatalf("Markdown was not rendered correctly: %s", sanitized)
 	}
 	if strings.Contains(sanitized, "<script") {
 		t.Fatalf("unsafe HTML was not removed: %s", sanitized)
 	}
-	supported := sanitizeMarkdownSource(`<details><summary>More</summary><sub>x</sub><p style="text-align: center">c</p></details>`)
+	supported := renderAndSanitizeMarkdown(`<details><summary>More</summary><sub>x</sub><p style="text-align: center">c</p></details>`)
 	for _, element := range []string{"<details>", "<summary>More</summary>", "<sub>x</sub>", `<p style="text-align: center">c</p>`} {
 		if !strings.Contains(supported, element) {
 			t.Errorf("UGC policy removed supported comment element %q", element)
