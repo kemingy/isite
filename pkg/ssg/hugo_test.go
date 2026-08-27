@@ -86,6 +86,11 @@ func assertHugoGeneratedFiles(t *testing.T, output string) {
 	if !strings.Contains(ogImage, "<svg") || !strings.Contains(ogImage, "A quoted title") {
 		t.Errorf("generated OG image does not contain the issue title:\n%s", ogImage)
 	}
+	for _, text := range []string{"author", "A Hugo Notes &#34;site&#34;"} {
+		if !strings.Contains(ogImage, text) {
+			t.Errorf("generated OG image does not contain %q:\n%s", text, ogImage)
+		}
+	}
 	var svg struct{}
 	if err := xml.Unmarshal([]byte(ogImage), &svg); err != nil {
 		t.Fatalf("generated OG image is not valid XML: %v", err)
