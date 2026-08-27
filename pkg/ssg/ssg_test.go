@@ -7,7 +7,10 @@ import (
 	"github.com/kemingy/isite/pkg/models"
 )
 
-const testTitle = "Notes"
+const (
+	testAuthor = "author"
+	testTitle  = "Notes"
+)
 
 func TestGeneratorsRejectEmptyOutput(t *testing.T) {
 	t.Parallel()

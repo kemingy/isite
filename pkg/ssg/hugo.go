@@ -365,7 +365,7 @@ func (h *Hugo) writeOGImage(path string, issue models.Issue) error {
 	title := html.EscapeString(issue.Title)
 	siteTitle := html.EscapeString(h.Title)
 	author := html.EscapeString(issue.User.Login)
-	titleLines := ogTitleLines(issue.Title, 30)
+	titleLines := ogTitleLines(issue.Title, 26)
 	if len(titleLines) > 4 {
 		titleLines = titleLines[:4]
 		last := []rune(titleLines[3])
@@ -377,9 +377,9 @@ func (h *Hugo) writeOGImage(path string, issue models.Issue) error {
 	for index, line := range titleLines {
 		line = html.EscapeString(line)
 		if index == 0 {
-			fmt.Fprintf(&titleSVG, `<tspan x="108" y="290">%s</tspan>`, line)
+			fmt.Fprintf(&titleSVG, `<tspan x="120" y="174">%s</tspan>`, line)
 		} else {
-			fmt.Fprintf(&titleSVG, `<tspan x="108" dy="58">%s</tspan>`, line)
+			fmt.Fprintf(&titleSVG, `<tspan x="120" dy="78">%s</tspan>`, line)
 		}
 	}
 	// Use portable system fallbacks. SVGs do not embed fonts, so the viewer
@@ -388,18 +388,14 @@ func (h *Hugo) writeOGImage(path string, issue models.Issue) error {
 	content := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title subtitle">
 <title id="title">%s</title>
 <desc id="subtitle">%s</desc>
-<rect width="1200" height="630" fill="#f6f8fa"/>
-<rect width="1200" height="166" fill="#24292f"/>
-<rect y="160" width="1200" height="6" fill="#2da44e"/>
-<text x="72" y="103" fill="#ffffff" font-family='%s' font-size="36" font-weight="700">%s</text>
-<text x="1128" y="101" fill="#8b949e" font-family='%s' font-size="24" font-weight="600" text-anchor="end">ISSUE #%d</text>
-<rect x="72" y="218" width="1056" height="300" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="2"/>
-<text fill="#1f2328" font-family='%s' font-size="54" font-weight="700">%s</text>
-<line x1="108" y1="480" x2="1092" y2="480" stroke="#d8dee4" stroke-width="2"/>
-<text x="108" y="518" fill="#57606a" font-family='%s' font-size="24">GitHub issue #%d</text>
-<text x="1092" y="518" fill="#57606a" font-family='%s' font-size="24" text-anchor="end">%s</text>
+<rect width="1200" height="630" fill="#fefbfb"/>
+<rect x="84" y="75" width="1056" height="504" rx="4" fill="#ecebeb" fill-opacity=".9" stroke="#000000" stroke-width="4"/>
+<rect x="60" y="51" width="1056" height="504" rx="4" fill="#fefbfb" stroke="#000000" stroke-width="4"/>
+<text fill="#000000" font-family='%s' font-size="68" font-weight="700">%s</text>
+<text x="120" y="510" fill="#000000" font-family='%s' font-size="28">by <tspan font-weight="700">%s</tspan></text>
+<text x="1056" y="510" fill="#000000" font-family='%s' font-size="28" font-weight="700" text-anchor="end">%s</text>
 </svg>
-`, title, title, fontFamily, siteTitle, fontFamily, issue.Number, fontFamily, titleSVG.String(), fontFamily, issue.Number, fontFamily, author)
+`, title, title, fontFamily, titleSVG.String(), fontFamily, author, fontFamily, siteTitle)
 	name := filepath.Join(path, hugoOGDir, fmt.Sprintf("issue-%d.svg", issue.Number))
 	if err := os.WriteFile(name, []byte(content), 0644); err != nil {
 		return errors.Wrapf(err, "failed to write Hugo OG image for issue #%d", issue.Number)

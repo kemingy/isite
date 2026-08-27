@@ -44,7 +44,7 @@ func hugoTestIssue() models.Issue {
 	return models.Issue{
 		Number: 42, Title: "A quoted title", URL: "https://github.com/example/notes/issues/42",
 		Body: "# Markdown body", CreatedAt: "2026-01-02T03:04:05Z", UpdatedAt: "2026-01-03T03:04:05Z",
-		User: models.User{Login: "author"}, Labels: []models.Label{{Name: "hugo"}},
+		User: models.User{Login: testAuthor}, Labels: []models.Label{{Name: "hugo"}},
 		Reactions: models.Reactions{ThumbUp: 3, Heart: 2},
 		Comments:  []models.Comment{{User: models.User{Login: "reader"}, HTMLURL: "https://example.com/comment", UpdatedAt: "2026-01-04", Body: "> A quoted comment\n\n```toml\ntitle = \"quote\"\n```"}},
 	}
@@ -85,6 +85,11 @@ func assertHugoGeneratedFiles(t *testing.T, output string) {
 	}
 	if !strings.Contains(ogImage, "<svg") || !strings.Contains(ogImage, "A quoted title") {
 		t.Errorf("generated OG image does not contain the issue title:\n%s", ogImage)
+	}
+	for _, text := range []string{testAuthor, "A Hugo Notes &#34;site&#34;"} {
+		if !strings.Contains(ogImage, text) {
+			t.Errorf("generated OG image does not contain %q:\n%s", text, ogImage)
+		}
 	}
 	var svg struct{}
 	if err := xml.Unmarshal([]byte(ogImage), &svg); err != nil {
