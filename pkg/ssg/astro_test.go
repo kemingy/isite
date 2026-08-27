@@ -269,7 +269,7 @@ func testAstroIssue() models.Issue {
 		Body: "# Markdown body\n\nInline math: $x^2$.\n\n" + strings.Repeat("Long article text. ", 30) +
 			"\n\n![An example](https://example.com/image.png)\n\n<img src=\"https://example.com/raw.png\" alt=\"Raw example\">",
 		CreatedAt: "2026-07-19T12:00:00Z", UpdatedAt: "2026-07-20T12:00:00Z",
-		User:      models.User{Login: "author", URL: "https://github.com/author", AvatarURL: "https://avatars.githubusercontent.com/u/1?v=4"},
+		User:      models.User{Login: testAuthor, URL: "https://github.com/author", AvatarURL: "https://avatars.githubusercontent.com/u/1?v=4"},
 		Labels:    []models.Label{{Name: "astro"}, {Name: "Top"}},
 		Reactions: models.Reactions{ThumbUp: 3, Heart: 2},
 		Comments: []models.Comment{{
